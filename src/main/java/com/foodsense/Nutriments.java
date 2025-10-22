@@ -10,7 +10,6 @@ public class Nutriments {
     private String sodium;
     private String sugars;
 
-
     public String getCarbohydrates() {
         return carbohydrates;
     }
@@ -73,5 +72,19 @@ public class Nutriments {
 
     public void setSugars(String sugars) {
         this.sugars = sugars;
+    }
+
+    @Override
+    public String toString(){
+        return (
+                "Carbohydrates: " + carbohydrates
+                + "\nEnergy: " + energy
+                + "\nFat: " + fat
+                + "\nProteins: " + proteins
+                + "\nSalt: " + salt
+                + "\nSaturated Fat: " + saturated_fat
+                + "\nSodium: " + sodium
+                + "\nSugars: " + sugars
+        );
     }
 }
