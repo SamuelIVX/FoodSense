@@ -8,6 +8,7 @@ import java.awt.*;
 import com.google.gson.Gson;
 
 // API Request Imports
+import java.lang.reflect.Field;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -20,13 +21,15 @@ public class FoodSenseGUI{
     private JFrame frame;
     private JTextField barcodeField;
     private JButton searchButton;
-    private JTextArea resultArea;
     private JPanel resultPanel;
+    private JPanel infoPanel;
     private JLabel productNameLabel;
     private JLabel brandsLabel;
     private JLabel nutriscoreLabel;
     private JLabel imageLabel;
-    private JTextArea infoArea;
+    private JLabel nutrimentsLabel;
+
+    private JLabel carbohydratesValue;
 
     public FoodSenseGUI() {
         initialize();
@@ -36,7 +39,7 @@ public class FoodSenseGUI{
     // JPanelObject.add(specific_component);
     // JFrameObject.add(JPanelObject, BorderLayout.SPECIFIED_DIRECTION);
 
-    // Creating the entire layout of my frame
+    // Initialize UI
     private void initialize(){
         frame = new JFrame();
         this.frame.setTitle("FoodSense - Barcode Scanner");
@@ -45,7 +48,7 @@ public class FoodSenseGUI{
         this.frame.setLocationRelativeTo(null);
         this.frame.setLayout(new BorderLayout());
 
-        // Top - Search Bar
+        // Top - Search Bar Panel
         JPanel searchPanel = new JPanel();
         searchPanel.add(new JLabel("Search Barcode:"));
         barcodeField = createBarcodeField();
@@ -54,9 +57,8 @@ public class FoodSenseGUI{
         searchPanel.add(searchButton);
         frame.add(searchPanel, BorderLayout.NORTH);
 
-        // Center - Results
-        resultPanel = createResultsPanel();
-        frame.add(resultPanel, BorderLayout.CENTER);
+        // Center - Results Panel
+        createResultsPanel();
 
         // Event Listeners
         barcodeField.addActionListener(e -> searchProduct());
@@ -70,40 +72,34 @@ public class FoodSenseGUI{
         barcodeField.setFont(new Font("", Font.BOLD, 14));
         barcodeField.setMargin(new Insets(5,10,5, 10));
 
-        barcodeField.setBackground(Color.GRAY);
-
         return barcodeField;
     }
 
-    private JPanel createResultsPanel(){
-        JPanel resultsPanel = new JPanel(new BorderLayout());
-        resultsPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+    private void createResultsPanel(){
+        resultPanel = new JPanel(new BorderLayout());
+        resultPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         // Product info at the top
-        JPanel infoPanel = new JPanel();
+        infoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
         imageLabel = new JLabel("No Image", SwingConstants.CENTER);
+        imageLabel.setPreferredSize(new Dimension(100, 100));
         productNameLabel = new JLabel("Product: ");
         productNameLabel.setFont(new Font("Arial", Font.BOLD, 18));
         brandsLabel = new JLabel("Brand: ");
-        brandsLabel.setFont(new Font("Arial", Font.PLAIN, 14));
         nutriscoreLabel = new JLabel("Nutriscore: ");
-        nutriscoreLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+
         infoPanel.add(imageLabel);
         infoPanel.add(productNameLabel);
         infoPanel.add(brandsLabel);
         infoPanel.add(nutriscoreLabel);
-        resultsPanel.add(infoPanel, BorderLayout.NORTH);
+
+        resultPanel.add(infoPanel, BorderLayout.NORTH);
 
         // Product Information at the center
-        infoArea = new JTextArea(5, 20);
-        infoArea.setLineWrap(true);
-        infoArea.setFont(new Font("Arial", Font.PLAIN, 12));
-        infoArea.setEditable(false);
-        JScrollPane ingredientsScrollPane = new JScrollPane(infoArea);
-        ingredientsScrollPane.setBorder(BorderFactory.createTitledBorder("Product Information"));
-        resultsPanel.add(ingredientsScrollPane, BorderLayout.CENTER);
 
-        return resultsPanel;
+        // Product Ingredients at the bottom
+
+        frame.add(resultPanel, BorderLayout.CENTER);
     }
 
     private void searchProduct(){
@@ -161,30 +157,22 @@ public class FoodSenseGUI{
     }
 
     private void displayProduct(Product product){
+
         // Update Product Image
-        if(product.getImage_front_url() != null && !product.getImage_front_url().isEmpty()){
-            URI uri = null;
-            try {
-                uri = new URI(product.getImage_front_url());
-            } catch (URISyntaxException e) {
-                throw new RuntimeException(e);
+        try {
+            if (product.getImage_front_url() != null && !product.getImage_front_url().isEmpty()) {
+                URI uri = new URI(product.getImage_front_url());
+                URL url = uri.toURL();
+                ImageIcon icon = new ImageIcon(url);
+                Image scaled = icon.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
+                imageLabel.setIcon(new ImageIcon(scaled));
+                imageLabel.setText(null);
+            } else {
+                imageLabel.setIcon(null);
+                imageLabel.setText("No image available");
             }
-
-            URL url = null;
-            try {
-                url = uri.toURL();
-            } catch (MalformedURLException e) {
-                throw new RuntimeException(e);
-            }
-            ImageIcon imageIcon = new ImageIcon(url);
-
-            // Scale Image
-            Image scaledImage = imageIcon.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
-            imageLabel.setIcon(new ImageIcon(scaledImage));
-            imageLabel.setText(null);
-        }  else {
-            imageLabel.setIcon(null);
-            imageLabel.setText("No image available");
+        } catch (URISyntaxException | MalformedURLException e) {
+            imageLabel.setText("Invalid image URL");
         }
 
         // Update Product Labels
@@ -192,15 +180,73 @@ public class FoodSenseGUI{
         brandsLabel.setText(product.getBrands());
         nutriscoreLabel.setText(product.getNutriscore_grade());
 
-        // Update Product Information
+        // Update Product Nutriments
         Nutriments nutriments = product.getNutriments();
-        infoArea.setText(nutriments.toString());
+        JPanel nutrimentsGrid = createNutrimentsGrid(nutriments);
 
         // Update Product Ingredients
+
+        // Replace center content
+        resultPanel.removeAll();
+        resultPanel.add(infoPanel, BorderLayout.NORTH);
+        resultPanel.add(nutrimentsGrid, BorderLayout.CENTER);
 
         // Refresh UI
         frame.revalidate();
         frame.repaint();
+    }
+
+    private JPanel createNutrimentsGrid(Nutriments nutriments){
+        JPanel gridPanel = new JPanel(new GridLayout(2, 2, 5, 5));
+        gridPanel.setBackground(Color.WHITE);
+        gridPanel.setBorder(BorderFactory.createTitledBorder("Nutriments"));
+
+        Field[] fields = Nutriments.class.getDeclaredFields();
+        String name, value;
+
+        for(Field field : fields){
+            field.setAccessible(true);
+            name = formatFieldName(field.getName());
+            try {
+                value = (String) field.get(nutriments);
+                if (value == null || value.isBlank()) value = "N/A";
+            } catch (IllegalAccessException e) {
+                throw new RuntimeException(e);
+            }
+
+            JPanel card = new JPanel(new BorderLayout());
+            card.setBackground(new Color(245, 247, 250));
+            card.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(220, 220, 220), 1, true),
+                    BorderFactory.createEmptyBorder(10, 10, 10, 10)
+            ));
+
+            JLabel nameLabel = new JLabel(name, SwingConstants.CENTER);
+            nameLabel.setFont(new Font("Arial", Font.BOLD, 12));
+            nameLabel.setForeground(new Color(60, 60, 60));
+
+            JLabel valueLabel = new JLabel(value, SwingConstants.CENTER);
+            valueLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+            valueLabel.setForeground(new Color(80, 80, 80));
+
+            card.add(nameLabel, BorderLayout.NORTH);
+            card.add(valueLabel, BorderLayout.CENTER);
+
+            gridPanel.add(card);
+        }
+        return gridPanel;
+    }
+
+    // Helper Function
+    private String formatFieldName(String raw) {
+        String[] parts = raw.split("_");
+        StringBuilder formatted = new StringBuilder();
+        for (String part : parts) {
+            formatted.append(Character.toUpperCase(part.charAt(0)))
+                    .append(part.substring(1))
+                    .append(" ");
+        }
+        return formatted.toString().trim();
     }
 
 }
