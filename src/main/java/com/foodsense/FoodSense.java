@@ -10,6 +10,9 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import javax.swing.*;
+import java.awt.*;
+
 public class FoodSense {
     static void main(String[] args){
         Product product = new Product();
@@ -18,31 +21,29 @@ public class FoodSense {
                     .setPrettyPrinting()
                     .create();
 
-        Scanner input = new Scanner(System.in);
-        System.out.print("Enter Your Barcode: ");
-        String barcode = input.nextLine();
+//        Scanner input = new Scanner(System.in);
+//        System.out.print("Enter Your Barcode: ");
+//        String barcode = input.nextLine();
 
-        try (HttpClient client = HttpClient.newHttpClient()) {
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("https://world.openfoodfacts.net/api/v2/product/" + barcode))
-                    .GET()
-                    .build();
+//        try (HttpClient client = HttpClient.newHttpClient()) {
+//            HttpRequest request = HttpRequest.newBuilder()
+//                    .uri(URI.create("https://world.openfoodfacts.net/api/v2/product/" + barcode))
+//                    .GET()
+//                    .build();
+//
+//            try {
+//                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+//
+//                apiResponse = gson.fromJson(response.body(), ApiResponse.class);
+//                product = apiResponse.getProduct();
+//                System.out.println(product.getNutriments());
+//
+//            } catch (Exception e) {
+//                throw new RuntimeException(e);
+//            }
+//        }
 
-            try {
-                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-    //            String rawJson = response.body();
-    //            JsonObject jsonObject = JsonParser.parseString(rawJson).getAsJsonObject();
-    //            String prettyJson = gson.toJson(jsonObject);
-    //                        System.out.println(prettyJson);
-
-                apiResponse = gson.fromJson(response.body(), ApiResponse.class);
-                product = apiResponse.getProduct();
-                System.out.println(product.getNutriments());
-
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
+        FoodSenseGUI foodSenseGUI = new FoodSenseGUI();
 
     }
 }
