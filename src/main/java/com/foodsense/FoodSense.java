@@ -15,33 +15,6 @@ import java.awt.*;
 
 public class FoodSense {
     static void main(String[] args){
-        Product product = new Product();
-        ApiResponse apiResponse = new ApiResponse();
-        Gson gson = new GsonBuilder()
-                    .setPrettyPrinting()
-                    .create();
-
-//        Scanner input = new Scanner(System.in);
-//        System.out.print("Enter Your Barcode: ");
-//        String barcode = input.nextLine();
-
-//        try (HttpClient client = HttpClient.newHttpClient()) {
-//            HttpRequest request = HttpRequest.newBuilder()
-//                    .uri(URI.create("https://world.openfoodfacts.net/api/v2/product/" + barcode))
-//                    .GET()
-//                    .build();
-//
-//            try {
-//                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-//
-//                apiResponse = gson.fromJson(response.body(), ApiResponse.class);
-//                product = apiResponse.getProduct();
-//                System.out.println(product.getNutriments());
-//
-//            } catch (Exception e) {
-//                throw new RuntimeException(e);
-//            }
-//        }
 
         FoodSenseGUI foodSenseGUI = new FoodSenseGUI();
 
