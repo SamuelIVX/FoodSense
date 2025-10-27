@@ -81,17 +81,29 @@ public class FoodSenseGUI{
         resultPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         // Product info at the top
-        infoPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
-        imageLabel = new JLabel("No Image", SwingConstants.CENTER);
+        infoPanel = new JPanel();
+        infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS)); // Vertical stacking
+
+        imageLabel = new JLabel("");
         imageLabel.setPreferredSize(new Dimension(100, 100));
-        productNameLabel = new JLabel("Product: ");
+        imageLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        productNameLabel = new JLabel("");
         productNameLabel.setFont(new Font("Arial", Font.BOLD, 18));
-        brandsLabel = new JLabel("Brand: ");
-        nutriscoreLabel = new JLabel("Nutriscore: ");
+        productNameLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        brandsLabel = new JLabel("");
+        brandsLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        nutriscoreLabel = new JLabel("");
+        nutriscoreLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         infoPanel.add(imageLabel);
+        infoPanel.add(Box.createVerticalStrut(10));
         infoPanel.add(productNameLabel);
+        infoPanel.add(Box.createVerticalStrut(5));
         infoPanel.add(brandsLabel);
+        infoPanel.add(Box.createVerticalStrut(5));
         infoPanel.add(nutriscoreLabel);
 
         resultPanel.add(infoPanel, BorderLayout.NORTH);
@@ -119,6 +131,7 @@ public class FoodSenseGUI{
         ingredientsPanel.add(ingredientCard, BorderLayout.CENTER);
 
         resultPanel.add(ingredientsPanel, BorderLayout.SOUTH);
+        ingredientsPanel.setVisible(false);
 
         frame.add(resultPanel, BorderLayout.CENTER);
     }
@@ -198,8 +211,8 @@ public class FoodSenseGUI{
 
         // Update Product Labels
         productNameLabel.setText(product.getProduct_name());
-        brandsLabel.setText(product.getBrands());
-        nutriscoreLabel.setText(product.getNutriscore_grade());
+        brandsLabel.setText("Brand: " + product.getBrands());
+        nutriscoreLabel.setText("Nutriscore: " + product.getNutriscore_grade());
 
         // Update Product Nutriments
         Nutriments nutriments = product.getNutriments();
@@ -207,6 +220,7 @@ public class FoodSenseGUI{
 
         // Update Product Ingredients
         ingredientsLabel.setText(product.getIngredients_text());
+        ingredientsPanel.setVisible(true);
 
         // Replace center content
         resultPanel.removeAll();
