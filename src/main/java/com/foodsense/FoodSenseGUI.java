@@ -23,14 +23,13 @@ public class FoodSenseGUI{
     private JButton searchButton;
     private JPanel resultPanel;
     private JPanel infoPanel;
+    private JPanel ingredientsPanel;
     private JLabel productNameLabel;
     private JLabel brandsLabel;
     private JLabel nutriscoreLabel;
     private JLabel imageLabel;
-    private JLabel nutrimentsLabel;
-
-    private JLabel carbohydratesValue;
-
+    private JLabel ingredientsLabel;
+    
     public FoodSenseGUI() {
         initialize();
     }
@@ -63,7 +62,9 @@ public class FoodSenseGUI{
         // Event Listeners
         barcodeField.addActionListener(e -> searchProduct());
         searchButton.addActionListener(e -> searchProduct());
+    }
 
+    public void start(){
         this.frame.setVisible(true);
     }
 
@@ -95,9 +96,29 @@ public class FoodSenseGUI{
 
         resultPanel.add(infoPanel, BorderLayout.NORTH);
 
-        // Product Information at the center
-
         // Product Ingredients at the bottom
+        ingredientsPanel = new JPanel(new BorderLayout());
+        ingredientsPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createEmptyBorder(10, 10, 10, 10),
+                BorderFactory.createTitledBorder("Ingredients")
+        ));
+        ingredientsPanel.setBorder(BorderFactory.createTitledBorder("Ingredients"));
+        ingredientsPanel.setBackground(Color.WHITE);
+
+        JPanel ingredientCard = new JPanel(new BorderLayout());
+        ingredientCard.setBackground(new Color(245, 247, 250));
+        ingredientCard.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(220, 220, 220), 1, true),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
+        ingredientsLabel = new JLabel();
+        ingredientsLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        ingredientsLabel.setForeground(new Color(60, 60, 60));
+
+        ingredientCard.add(ingredientsLabel, BorderLayout.CENTER);
+        ingredientsPanel.add(ingredientCard, BorderLayout.CENTER);
+
+        resultPanel.add(ingredientsPanel, BorderLayout.SOUTH);
 
         frame.add(resultPanel, BorderLayout.CENTER);
     }
@@ -164,7 +185,7 @@ public class FoodSenseGUI{
                 URI uri = new URI(product.getImage_front_url());
                 URL url = uri.toURL();
                 ImageIcon icon = new ImageIcon(url);
-                Image scaled = icon.getImage().getScaledInstance(100, 100, Image.SCALE_SMOOTH);
+                Image scaled = icon.getImage().getScaledInstance(110, 120, Image.SCALE_SMOOTH);
                 imageLabel.setIcon(new ImageIcon(scaled));
                 imageLabel.setText(null);
             } else {
@@ -185,11 +206,13 @@ public class FoodSenseGUI{
         JPanel nutrimentsGrid = createNutrimentsGrid(nutriments);
 
         // Update Product Ingredients
+        ingredientsLabel.setText(product.getIngredients_text());
 
         // Replace center content
         resultPanel.removeAll();
         resultPanel.add(infoPanel, BorderLayout.NORTH);
         resultPanel.add(nutrimentsGrid, BorderLayout.CENTER);
+        resultPanel.add(ingredientsPanel, BorderLayout.SOUTH);
 
         // Refresh UI
         frame.revalidate();
@@ -201,9 +224,20 @@ public class FoodSenseGUI{
         gridPanel.setBackground(Color.WHITE);
         gridPanel.setBorder(BorderFactory.createTitledBorder("Nutriments"));
 
+        /*
+           Using Java reflection to create a card for every nutriment.
+
+           A field object represents a single variable (field) declared in a class.
+           Using reflection, I can inspect a class at runtime and get those fields dynamically.
+
+           getDeclaredFields() → returns all fields declared in the class (including private ones).
+
+           field.getName() → gets the name of the field (like "carbohydrates").
+
+           field.get(nutriments) → fetches the value stored in that field from a specific Nutriments instance.
+       */
         Field[] fields = Nutriments.class.getDeclaredFields();
         String name, value;
-
         for(Field field : fields){
             field.setAccessible(true);
             name = formatFieldName(field.getName());
@@ -214,27 +248,32 @@ public class FoodSenseGUI{
                 throw new RuntimeException(e);
             }
 
-            JPanel card = new JPanel(new BorderLayout());
-            card.setBackground(new Color(245, 247, 250));
-            card.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(new Color(220, 220, 220), 1, true),
-                    BorderFactory.createEmptyBorder(10, 10, 10, 10)
-            ));
-
-            JLabel nameLabel = new JLabel(name, SwingConstants.CENTER);
-            nameLabel.setFont(new Font("Arial", Font.BOLD, 12));
-            nameLabel.setForeground(new Color(60, 60, 60));
-
-            JLabel valueLabel = new JLabel(value, SwingConstants.CENTER);
-            valueLabel.setFont(new Font("Arial", Font.PLAIN, 12));
-            valueLabel.setForeground(new Color(80, 80, 80));
-
-            card.add(nameLabel, BorderLayout.NORTH);
-            card.add(valueLabel, BorderLayout.CENTER);
+            JPanel card = getJPanel(name, value);
 
             gridPanel.add(card);
         }
         return gridPanel;
+    }
+
+    private static JPanel getJPanel(String name, String value) {
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(new Color(245, 247, 250));
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(220, 220, 220), 1, true),
+                BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
+
+        JLabel nameLabel = new JLabel(name, SwingConstants.CENTER);
+        nameLabel.setFont(new Font("Arial", Font.BOLD, 12));
+        nameLabel.setForeground(new Color(60, 60, 60));
+
+        JLabel valueLabel = new JLabel(value, SwingConstants.CENTER);
+        valueLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+        valueLabel.setForeground(new Color(80, 80, 80));
+
+        card.add(nameLabel, BorderLayout.NORTH);
+        card.add(valueLabel, BorderLayout.CENTER);
+        return card;
     }
 
     // Helper Function
