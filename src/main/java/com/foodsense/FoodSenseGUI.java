@@ -20,7 +20,6 @@ import java.net.http.HttpResponse;
 public class FoodSenseGUI{
     // Color Scheme
     private static final Color PRIMARY_GREEN = new Color(46, 125, 50);
-    private static final Color ACCENT_GREEN = new Color(56, 142, 60);
     private static final Color BACKGROUND_LIGHT = new Color(250, 250, 250);
     private static final Color CARD_BACKGROUND = new Color(255, 255, 255);
     private static final Color BORDER_COLOR = new Color(224, 224, 224);
@@ -151,7 +150,6 @@ public class FoodSenseGUI{
 
         nutriscoreLabel = new JLabel("");
         nutriscoreLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        nutriscoreLabel.setForeground(ACCENT_GREEN);
         nutriscoreLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         infoPanel.add(imageLabel);
@@ -276,6 +274,7 @@ public class FoodSenseGUI{
         productNameLabel.setText(product.getProduct_name());
         brandsLabel.setText("Brand: " + product.getBrands());
         nutriscoreLabel.setText("Nutriscore: " + product.getNutriscore_grade().toUpperCase());
+        nutriscoreLabel.setForeground(getNutriscoreColor(product.getNutriscore_grade()));
 
         // Update Product Nutriments
         Nutriments nutriments = product.getNutriments();
@@ -359,6 +358,17 @@ public class FoodSenseGUI{
         card.add(Box.createVerticalStrut(8));
         card.add(valueLabel);
         return card;
+    }
+
+    private Color getNutriscoreColor(String grade) {
+        return switch (grade.toUpperCase()) {
+            case "A" -> new Color(0, 128, 0);      // Dark Green
+            case "B" -> new Color(133, 187, 101);  // Light Green
+            case "C" -> new Color(255, 204, 0);    // Yellow
+            case "D" -> new Color(255, 140, 0);    // Orange
+            case "E" -> new Color(198, 40, 40);    // Red
+            default -> TEXT_SECONDARY;
+        };
     }
 
     // Helper Function
