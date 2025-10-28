@@ -1,14 +1,19 @@
 package com.foodsense;
+import com.google.gson.annotations.SerializedName;
 
 public class Nutriments {
-    private String carbohydrates;
     private String energy;
+
+    private String sugars;
     private String fat;
+
+    @SerializedName("saturated-fat")
+    private String saturated_fat;
+
+    private String carbohydrates;
     private String proteins;
     private String salt;
-    private String saturated_fat;
     private String sodium;
-    private String sugars;
 
     public String getCarbohydrates() {
         return carbohydrates;
