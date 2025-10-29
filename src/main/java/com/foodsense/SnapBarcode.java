@@ -1,17 +1,14 @@
 package com.foodsense;
 
 import org.bytedeco.javacv.*;
-import org.bytedeco.opencv.opencv_core.Buffer;
 import org.bytedeco.opencv.opencv_core.Mat;
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
 
 import org.bytedeco.javacv.CanvasFrame;
 import org.bytedeco.javacv.Frame;
 import org.bytedeco.javacv.FrameGrabber;
 import org.bytedeco.javacv.OpenCVFrameGrabber;
+
 import static org.bytedeco.opencv.global.opencv_core.*;
 
 import java.util.concurrent.BlockingQueue;
@@ -21,7 +18,6 @@ import com.google.zxing.*;
 import com.google.zxing.client.j2se.BufferedImageLuminanceSource;
 import com.google.zxing.common.HybridBinarizer;
 
-import javax.imageio.stream.ImageInputStream;
 import javax.swing.WindowConstants;
 
 public class SnapBarcode {
