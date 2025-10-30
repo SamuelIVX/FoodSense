@@ -73,10 +73,52 @@ public class VideoProcessor {
             this.listener = listener;
         }
 
+        private Frame drawBoxOverBarcode(Result result, Frame frame){
+            ResultPoint[] points = result.getResultPoints();
+
+            if (points != null && points.length == 2) {
+                OpenCVFrameConverter.ToMat matConverter = new OpenCVFrameConverter.ToMat();
+                Mat mat = matConverter.convert(frame);
+
+                Point p1 = new Point((int) points[0].getX(), (int) points[0].getY());
+                Point p2 = new Point((int) points[1].getX(), (int) points[1].getY());
+
+                // Compute expanded bounding box (padding to make it larger & visible)
+                int paddingX = 150;
+                int paddingY = 120;
+
+                // Compute the corners of the box
+                int minX = Math.min(p1.x(), p2.x()) - paddingX;
+                int minY = Math.min(p1.y(), p2.y()) - paddingY;
+                int maxX = Math.max(p1.x(), p2.x()) + paddingX;
+                int maxY = Math.max(p1.y(), p2.y()) + paddingY;
+
+                // Make sure the box is within bounds (not outside the video frame)
+                minX = Math.max(0, minX);
+                minY = Math.max(0, minY);
+                maxX = Math.min(mat.cols() - 1, maxX);
+                maxY = Math.min(mat.rows() - 1, maxY);
+
+                // Draw a bold box around the barcode
+                rectangle(
+                        mat,
+                        new Point(minX, minY),
+                        new Point(maxX, maxY),
+                        new Scalar(0, 255, 0, 0),
+                        4,
+                        LINE_AA,
+                        0
+                );
+
+                frame = matConverter.convert(mat);
+            }
+            return frame;
+        }
+
         @Override
         public void run() {
             CanvasFrame canvas = new CanvasFrame("Live Barcode Scanner");
-            canvas.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+            canvas.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
             canvas.setCanvasSize(640, 480);
 
             Java2DFrameConverter frameToImage = new Java2DFrameConverter();
@@ -95,61 +137,25 @@ public class VideoProcessor {
                         Result result = barcodeReader.decode(bitmap);
 
                         // Draw box on frame
-                        ResultPoint[] points = result.getResultPoints();
-                        if (points != null && points.length == 2) {
-                            OpenCVFrameConverter.ToMat matConverter = new OpenCVFrameConverter.ToMat();
-                            Mat mat = matConverter.convert(frame);
-
-                            Point p1 = new Point((int) points[0].getX(), (int) points[0].getY());
-                            Point p2 = new Point((int) points[1].getX(), (int) points[1].getY());
-
-                            // Compute expanded bounding box (padding to make it larger & visible)
-                            int paddingX = 150;
-                            int paddingY = 120;
-
-                            // Compute the corners of the box
-                            int minX = Math.min(p1.x(), p2.x()) - paddingX;
-                            int minY = Math.min(p1.y(), p2.y()) - paddingY;
-                            int maxX = Math.max(p1.x(), p2.x()) + paddingX;
-                            int maxY = Math.max(p1.y(), p2.y()) + paddingY;
-
-                            // Make sure the box is within bounds (not outside the video frame)
-                            minX = Math.max(0, minX);
-                            minY = Math.max(0, minY);
-                            maxX = Math.min(mat.cols() - 1, maxX);
-                            maxY = Math.min(mat.rows() - 1, maxY);
-
-                            // Draw a bold box around the barcode
-                            rectangle(
-                                    mat,
-                                    new Point(minX, minY),
-                                    new Point(maxX, maxY),
-                                    new Scalar(0, 255, 0, 0),
-                                    4,
-                                    LINE_AA,
-                                    0
-                            );
-
-                            frame = matConverter.convert(mat);
-                        }
+                        frame = drawBoxOverBarcode(result, frame);
 
                         System.out.println("Detected: " + result.getText() + " (" + result.getBarcodeFormat() + ")");
 
                         if (listener != null) listener.onBarcodeDetected(result.getText());
+
                         // Pause for a short moment
                         canvas.showImage(frame);
                         try {
                             Thread.sleep(1000); // 1 second pause
                         } catch (InterruptedException ignored) {}
 
-                         stop();
+                        stop();
                         canvas.dispose();
                         break;
 
                     } catch (NotFoundException e) {
                         // No barcode in this frame
                     }
-
                     canvas.showImage(frame);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();

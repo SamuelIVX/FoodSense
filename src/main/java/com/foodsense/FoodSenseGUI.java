@@ -70,8 +70,12 @@ public class FoodSenseGUI{
         barcodeField = createBarcodeField();
         searchPanel.add(barcodeField);
 
-        searchButton = createStyledSearchButton();
-        cameraButton = createStyledScanButton();
+        searchButton = new JButton();
+        cameraButton = new JButton();
+        searchButton = createStyledButton();
+        cameraButton = createStyledButton();
+        searchButton.setText("Search");
+        cameraButton.setText("Scan w/ Camera");
         searchPanel.add(searchButton);
         searchPanel.add(cameraButton);
 
@@ -106,52 +110,28 @@ public class FoodSenseGUI{
         return barcodeField;
     }
 
-    private JButton createStyledSearchButton(){
-        searchButton = new JButton("Search");
-        searchButton.setFont(new Font("Arial", Font.BOLD, 14));
-        searchButton.setForeground(PRIMARY_GREEN);
-        searchButton.setBackground(Color.WHITE);
-        searchButton.setOpaque(true);
-        searchButton.setFocusPainted(false);
-        searchButton.setBorderPainted(true);
-        searchButton.setBorder(BorderFactory.createEmptyBorder(8, 20, 8, 20));
-        searchButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    private JButton createStyledButton(){
+        JButton button = new JButton();
+        button.setFont(new Font("Arial", Font.BOLD, 14));
+        button.setForeground(PRIMARY_GREEN);
+        button.setBackground(Color.WHITE);
+        button.setOpaque(true);
+        button.setFocusPainted(false);
+        button.setBorderPainted(true);
+        button.setBorder(BorderFactory.createEmptyBorder(8, 20, 8, 20));
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
         // Hover effect
-        searchButton.addMouseListener(new java.awt.event.MouseAdapter() {
+        button.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseEntered(java.awt.event.MouseEvent evt) {
-                searchButton.setBackground(BACKGROUND_LIGHT);
+                button.setBackground(BACKGROUND_LIGHT);
             }
             public void mouseExited(java.awt.event.MouseEvent evt) {
-                searchButton.setBackground(Color.WHITE);
+                button.setBackground(Color.WHITE);
             }
         });
 
-        return searchButton;
-    }
-
-    private JButton createStyledScanButton(){
-        cameraButton = new JButton("Scan with Camera");
-        cameraButton.setFont(new Font("Arial", Font.BOLD, 14));
-        cameraButton.setForeground(PRIMARY_GREEN);
-        cameraButton.setBackground(Color.WHITE);
-        cameraButton.setOpaque(true);
-        cameraButton.setFocusPainted(false);
-        cameraButton.setBorderPainted(true);
-        cameraButton.setBorder(BorderFactory.createEmptyBorder(8, 20, 8, 20));
-        cameraButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-        // Hover effect
-        cameraButton.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                cameraButton.setBackground(BACKGROUND_LIGHT);
-            }
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                cameraButton.setBackground(Color.WHITE);
-            }
-        });
-
-        return cameraButton;
+        return button;
     }
 
     private void createResultsPanel(){
@@ -161,7 +141,7 @@ public class FoodSenseGUI{
         // Product info at the top
         infoPanel = new JPanel();
         infoPanel.setBackground(CARD_BACKGROUND);
-        infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS)); // Vertical stacking
+        infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
 
         imageLabel = new JLabel("");
         imageLabel.setPreferredSize(new Dimension(100, 100));
@@ -227,6 +207,7 @@ public class FoodSenseGUI{
     }
 
     private void startBarcodeScanner(){
+        // A lambda expression that implements the BarcodeListener interface's method onBarcodeDetected.
         VideoProcessor videoProcessor = new VideoProcessor(barcode -> {
             SwingUtilities.invokeLater(() -> {
                 barcodeField.setText(barcode);
@@ -412,6 +393,7 @@ public class FoodSenseGUI{
 
     // Helper Function
     private String formatFieldName(String raw) {
+        // Example: fat_saturated_value --> Fat Saturated Value
         String[] parts = raw.split("_");
         StringBuilder formatted = new StringBuilder();
         for (String part : parts) {
