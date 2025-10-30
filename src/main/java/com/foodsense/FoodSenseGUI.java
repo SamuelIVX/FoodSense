@@ -29,6 +29,7 @@ public class FoodSenseGUI{
     private JFrame frame;
     private JTextField barcodeField;
     private JButton searchButton;
+    private JButton cameraButton;
     private JPanel resultPanel;
     private JPanel infoPanel;
     private JPanel ingredientsPanel;
@@ -61,7 +62,7 @@ public class FoodSenseGUI{
         searchPanel.setBackground(PRIMARY_GREEN);
         searchPanel.setBorder(BorderFactory.createEmptyBorder(15, 10, 15, 10));
 
-        JLabel searchLabel = new JLabel("Search Barcode:");
+        JLabel searchLabel = new JLabel("Product Barcode:");
         searchLabel.setForeground(Color.WHITE);
         searchLabel.setFont(new Font("Arial", Font.BOLD, 14));
         searchPanel.add(searchLabel);
@@ -69,8 +70,10 @@ public class FoodSenseGUI{
         barcodeField = createBarcodeField();
         searchPanel.add(barcodeField);
 
-        searchButton = createStyledButton();
+        searchButton = createStyledSearchButton();
+        cameraButton = createStyledScanButton();
         searchPanel.add(searchButton);
+        searchPanel.add(cameraButton);
 
         frame.add(searchPanel, BorderLayout.NORTH);
 
@@ -82,6 +85,8 @@ public class FoodSenseGUI{
         barcodeField.addActionListener(e -> searchProduct());
         assert searchButton != null;
         searchButton.addActionListener(e -> searchProduct());
+        assert cameraButton != null;
+        cameraButton.addActionListener(e -> startBarcodeScanner());
     }
 
     public void start(){
@@ -101,7 +106,7 @@ public class FoodSenseGUI{
         return barcodeField;
     }
 
-    private JButton createStyledButton(){
+    private JButton createStyledSearchButton(){
         searchButton = new JButton("Search");
         searchButton.setFont(new Font("Arial", Font.BOLD, 14));
         searchButton.setForeground(PRIMARY_GREEN);
@@ -123,6 +128,30 @@ public class FoodSenseGUI{
         });
 
         return searchButton;
+    }
+
+    private JButton createStyledScanButton(){
+        cameraButton = new JButton("Scan with Camera");
+        cameraButton.setFont(new Font("Arial", Font.BOLD, 14));
+        cameraButton.setForeground(PRIMARY_GREEN);
+        cameraButton.setBackground(Color.WHITE);
+        cameraButton.setOpaque(true);
+        cameraButton.setFocusPainted(false);
+        cameraButton.setBorderPainted(true);
+        cameraButton.setBorder(BorderFactory.createEmptyBorder(8, 20, 8, 20));
+        cameraButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        // Hover effect
+        cameraButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                cameraButton.setBackground(BACKGROUND_LIGHT);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                cameraButton.setBackground(Color.WHITE);
+            }
+        });
+
+        return cameraButton;
     }
 
     private void createResultsPanel(){
@@ -195,6 +224,16 @@ public class FoodSenseGUI{
         ingredientsPanel.setVisible(false);
 
         frame.add(resultPanel, BorderLayout.CENTER);
+    }
+
+    private void startBarcodeScanner(){
+        VideoProcessor videoProcessor = new VideoProcessor(barcode -> {
+            SwingUtilities.invokeLater(() -> {
+                barcodeField.setText(barcode);
+                searchProduct();
+            });
+        });
+        videoProcessor.start();
     }
 
     private void searchProduct(){

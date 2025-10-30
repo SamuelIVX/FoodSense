@@ -15,26 +15,44 @@ import static org.bytedeco.opencv.global.opencv_imgproc.*;
 import javax.swing.WindowConstants;
 
 public class VideoProcessor {
-    private static final BlockingQueue<Frame> frameQueue = new LinkedBlockingQueue<>(2);
+    public interface BarcodeListener{
+        void onBarcodeDetected(String barcodeText);
+    }
 
-    static void main(String[] args) {
+    private final BlockingQueue<Frame> frameQueue = new LinkedBlockingQueue<>(2);
+    private final BarcodeListener listener;
+    private volatile boolean running = false;
+
+    public VideoProcessor(BarcodeListener listener){
+        this.listener = listener;
+    }
+
+   public void start() {
+        if (running) return;
+        running = true;
+
         Thread producer = new Thread(new ProducerTask());
-        Thread consumer = new Thread(new ConsumerTask());
+        Thread consumer = new Thread(new ConsumerTask(listener));
         producer.start();
         consumer.start();
     }
 
-    static class ProducerTask implements Runnable {
+    public void stop() {
+        running = false;
+        frameQueue.clear();
+    }
+
+    private class ProducerTask implements Runnable {
         @Override
         public void run() {
             try (OpenCVFrameGrabber grabber = new OpenCVFrameGrabber(0)) {
                 grabber.start();
 
-                while (true) {
+                while (running) {
                     Frame frame = grabber.grab();
                     if (frame == null) break;
 
-                    // Offer frame to queue (dropping oldest if full)
+                    // Offer frame to queue
                     if (!frameQueue.offer(frame)) {
                         frameQueue.poll();
                         frameQueue.offer(frame);
@@ -48,7 +66,13 @@ public class VideoProcessor {
         }
     }
 
-    static class ConsumerTask implements Runnable {
+    private class ConsumerTask implements Runnable {
+        private final BarcodeListener listener;
+
+        public ConsumerTask(BarcodeListener listener) {
+            this.listener = listener;
+        }
+
         @Override
         public void run() {
             CanvasFrame canvas = new CanvasFrame("Live Barcode Scanner");
@@ -69,7 +93,6 @@ public class VideoProcessor {
 
                     try {
                         Result result = barcodeReader.decode(bitmap);
-                        System.out.println("Detected: " + result.getText() + " (" + result.getBarcodeFormat() + ")");
 
                         // Draw box on frame
                         ResultPoint[] points = result.getResultPoints();
@@ -84,19 +107,19 @@ public class VideoProcessor {
                             int paddingX = 150;
                             int paddingY = 120;
 
-                            // Compute the corners of the rectangle
+                            // Compute the corners of the box
                             int minX = Math.min(p1.x(), p2.x()) - paddingX;
                             int minY = Math.min(p1.y(), p2.y()) - paddingY;
                             int maxX = Math.max(p1.x(), p2.x()) + paddingX;
                             int maxY = Math.max(p1.y(), p2.y()) + paddingY;
 
-                            // Clamp within frame bounds (avoid crash if edges go negative)
+                            // Make sure the box is within bounds (not outside the video frame)
                             minX = Math.max(0, minX);
                             minY = Math.max(0, minY);
                             maxX = Math.min(mat.cols() - 1, maxX);
                             maxY = Math.min(mat.rows() - 1, maxY);
 
-                            // Draw a bold rectangle around the barcode
+                            // Draw a bold box around the barcode
                             rectangle(
                                     mat,
                                     new Point(minX, minY),
@@ -109,8 +132,22 @@ public class VideoProcessor {
 
                             frame = matConverter.convert(mat);
                         }
+
+                        System.out.println("Detected: " + result.getText() + " (" + result.getBarcodeFormat() + ")");
+
+                        if (listener != null) listener.onBarcodeDetected(result.getText());
+                        // Pause for a short moment
+                        canvas.showImage(frame);
+                        try {
+                            Thread.sleep(1000); // 1 second pause
+                        } catch (InterruptedException ignored) {}
+
+                         stop();
+                        canvas.dispose();
+                        break;
+
                     } catch (NotFoundException e) {
-                        // No barcode in this frame — ignore
+                        // No barcode in this frame
                     }
 
                     canvas.showImage(frame);
@@ -122,7 +159,6 @@ public class VideoProcessor {
                 }
             }
             canvas.dispose();
-            System.exit(0);
         }
     }
 }
