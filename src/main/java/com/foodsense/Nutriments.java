@@ -2,7 +2,8 @@ package com.foodsense;
 import com.google.gson.annotations.SerializedName;
 
 public class Nutriments {
-    private String energy;
+    @SerializedName("energy")
+    private String calories;
 
     private String sugars;
     private String fat;
@@ -24,11 +25,11 @@ public class Nutriments {
     }
 
     public String getEnergy() {
-        return energy;
+        return calories;
     }
 
     public void setEnergy(String energy) {
-        this.energy = energy;
+        this.calories = energy;
     }
 
     public String getFat() {
@@ -83,7 +84,7 @@ public class Nutriments {
     public String toString(){
         return (
                 "Carbohydrates: " + carbohydrates
-                + "\nEnergy: " + energy
+                + "\nEnergy: " + calories
                 + "\nFat: " + fat
                 + "\nProteins: " + proteins
                 + "\nSalt: " + salt
