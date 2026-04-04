@@ -52,10 +52,11 @@ public class VideoProcessor {
                     Frame frame = grabber.grab();
                     if (frame == null) break;
 
-                    // Offer frame to queue
-                    if (!frameQueue.offer(frame)) {
+                    // Clone the frame — grab() reuses the same internal buffer
+                    Frame cloned = frame.clone();
+                    if (!frameQueue.offer(cloned)) {
                         frameQueue.poll();
-                        frameQueue.offer(frame);
+                        frameQueue.offer(cloned);
                     }
                 }
 
@@ -121,15 +122,24 @@ public class VideoProcessor {
             canvas.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
             canvas.setCanvasSize(640, 480);
 
+            // Stop the producer when the user closes the window
+            canvas.addWindowListener(new java.awt.event.WindowAdapter() {
+                @Override
+                public void windowClosing(java.awt.event.WindowEvent e) {
+                    stop();
+                }
+            });
+
             Java2DFrameConverter frameToImage = new Java2DFrameConverter();
             MultiFormatReader barcodeReader = new MultiFormatReader();
 
-            while (canvas.isVisible()) {
+            while (running && canvas.isVisible()) {
                 try {
                     Frame frame = frameQueue.take();
 
                     // Convert Frame → BufferedImage for ZXing
                     BufferedImage image = frameToImage.convert(frame);
+                    if (image == null) continue;
                     LuminanceSource source = new BufferedImageLuminanceSource(image);
                     BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
 
