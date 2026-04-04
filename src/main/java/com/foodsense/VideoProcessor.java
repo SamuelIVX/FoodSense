@@ -15,7 +15,7 @@ import static org.bytedeco.opencv.global.opencv_imgproc.*;
 import javax.swing.WindowConstants;
 
 public class VideoProcessor {
-    public interface BarcodeListener{
+    public interface BarcodeListener {
         void onBarcodeDetected(String barcodeText);
     }
 
@@ -23,12 +23,13 @@ public class VideoProcessor {
     private final BarcodeListener listener;
     private volatile boolean running = false;
 
-    public VideoProcessor(BarcodeListener listener){
+    public VideoProcessor(BarcodeListener listener) {
         this.listener = listener;
     }
 
-   public void start() {
-        if (running) return;
+    public void start() {
+        if (running)
+            return;
         running = true;
 
         Thread producer = new Thread(new ProducerTask());
@@ -50,7 +51,8 @@ public class VideoProcessor {
 
                 while (running) {
                     Frame frame = grabber.grab();
-                    if (frame == null) break;
+                    if (frame == null)
+                        break;
 
                     // Clone the frame — grab() reuses the same internal buffer
                     Frame cloned = frame.clone();
@@ -74,7 +76,7 @@ public class VideoProcessor {
             this.listener = listener;
         }
 
-        private Frame drawBoxOverBarcode(Result result, Frame frame){
+        private Frame drawBoxOverBarcode(Result result, Frame frame) {
             ResultPoint[] points = result.getResultPoints();
 
             if (points != null && points.length == 2) {
@@ -108,8 +110,7 @@ public class VideoProcessor {
                         new Scalar(0, 255, 0, 0),
                         4,
                         LINE_AA,
-                        0
-                );
+                        0);
 
                 frame = matConverter.convert(mat);
             }
@@ -135,11 +136,14 @@ public class VideoProcessor {
 
             while (running && canvas.isVisible()) {
                 try {
-                    Frame frame = frameQueue.take();
+                    Frame frame = frameQueue.poll(100, java.util.concurrent.TimeUnit.MILLISECONDS);
+                    if (frame == null)
+                        continue;
 
                     // Convert Frame → BufferedImage for ZXing
                     BufferedImage image = frameToImage.convert(frame);
-                    if (image == null) continue;
+                    if (image == null)
+                        continue;
                     LuminanceSource source = new BufferedImageLuminanceSource(image);
                     BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
 
@@ -151,13 +155,15 @@ public class VideoProcessor {
 
                         System.out.println("Detected: " + result.getText() + " (" + result.getBarcodeFormat() + ")");
 
-                        if (listener != null) listener.onBarcodeDetected(result.getText());
+                        if (listener != null)
+                            listener.onBarcodeDetected(result.getText());
 
                         // Pause for a short moment
                         canvas.showImage(frame);
                         try {
                             Thread.sleep(1000); // 1 second pause
-                        } catch (InterruptedException ignored) {}
+                        } catch (InterruptedException ignored) {
+                        }
 
                         stop();
                         canvas.dispose();
