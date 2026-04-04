@@ -51,8 +51,10 @@ public class VideoProcessor {
 
                 while (running) {
                     Frame frame = grabber.grab();
-                    if (frame == null)
+                    if (frame == null) {
+                        running = false;
                         break;
+                    }
 
                     // Clone the frame — grab() reuses the same internal buffer
                     Frame cloned = frame.clone();
