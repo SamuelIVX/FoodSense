@@ -1,3 +1,8 @@
+/*
+ * Gson round-trip / deserialization tests for {@link Nutriments}, {@link Product}, and {@link ApiResponse}.
+ * Covers {@code @SerializedName} keys such as {@code energy} and {@code saturated-fat}.
+ */
+
 package com.foodsense;
 
 import com.google.gson.Gson;

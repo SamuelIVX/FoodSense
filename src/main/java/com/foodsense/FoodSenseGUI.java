@@ -1,3 +1,10 @@
+/*
+ * Swing UI and Open Food Facts client for FoodSense.
+ * Builds the sidebar + product view, runs barcode search on a background thread,
+ * and marshals UI updates onto the EDT via {@link SwingUtilities#invokeLater}.
+ * Hits the staging host {@code world.openfoodfacts.net} (not {@code .org}).
+ */
+
 package com.foodsense;
 
 import javax.swing.*;
@@ -7,6 +14,9 @@ import java.net.URI;
 import java.net.http.*;
 import com.google.gson.Gson;
 
+/**
+ * Main application window: manual barcode entry, webcam scan handoff, and nutrition display.
+ */
 public class FoodSenseGUI {
 
     // ── Palette ───────────────────────────────────────────────
@@ -37,16 +47,25 @@ public class FoodSenseGUI {
     private JLabel brandLabel;
     private JPanel scorePanel;
 
+    /**
+     * Constructs the main frame and widget tree (not yet visible).
+     * Call {@link #start()} to show the window.
+     */
     public FoodSenseGUI() {
         build();
     }
 
+    /**
+     * Makes the main frame visible. Must be called after construction on the EDT
+     * (or before any other Swing work if this is the first Swing touch in the process).
+     */
     public void start() {
         frame.setVisible(true);
     }
 
     // ── Frame ─────────────────────────────────────────────────
 
+    /** Creates the JFrame, sidebar, and empty-state content area. */
     private void build() {
         frame = new JFrame("FoodSense");
         frame.setSize(1100, 760);
@@ -66,6 +85,11 @@ public class FoodSenseGUI {
 
     // ── Sidebar ───────────────────────────────────────────────
 
+    /**
+     * Builds the dark-green left rail: logo, barcode field, Search/Scan buttons, product card.
+     *
+     * @return sidebar panel for {@link BorderLayout#WEST}
+     */
     private JPanel buildSidebar() {
         JPanel sidebar = new JPanel(new BorderLayout());
         sidebar.setBackground(SIDEBAR_BG);
@@ -134,6 +158,11 @@ public class FoodSenseGUI {
         return sidebar;
     }
 
+    /**
+     * Sidebar widgets for product image, name, brand, and Nutri-Score (hidden until a lookup succeeds).
+     *
+     * @return center section of the sidebar
+     */
     private JPanel buildSidebarProductCard() {
         JPanel card = new JPanel();
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
@@ -175,6 +204,11 @@ public class FoodSenseGUI {
         return card;
     }
 
+    /**
+     * @param text    button label
+     * @param primary if true, filled primary green; otherwise muted accent style
+     * @return styled {@link JButton} with hover background swap
+     */
     private JButton mkBtn(String text, boolean primary) {
         JButton b = new JButton(text);
         b.setFont(new Font(F, Font.BOLD, 13));
@@ -192,6 +226,7 @@ public class FoodSenseGUI {
         return b;
     }
 
+    /** @return thin separator tinted to {@link #SIDEBAR_ACCENT} */
     private JSeparator mkSeparator() {
         JSeparator s = new JSeparator();
         s.setForeground(SIDEBAR_ACCENT);
@@ -201,6 +236,13 @@ public class FoodSenseGUI {
 
     // ── Sidebar product update ────────────────────────────────
 
+    /**
+     * Fills sidebar image/name/brand/Nutri-Score from a looked-up product.
+     * Loads {@link Product#getImage_front_url()} over the network on the calling thread.
+     * Must run on the EDT.
+     *
+     * @param p product to display; image URL may be missing
+     */
     private void updateSidebar(Product p) {
         try {
             if (p.getImage_front_url() != null && !p.getImage_front_url().isEmpty()) {
@@ -242,6 +284,11 @@ public class FoodSenseGUI {
 
     // ── Empty state ───────────────────────────────────────────
 
+    /**
+     * Placeholder shown before any successful product lookup.
+     *
+     * @return center content panel
+     */
     private JPanel buildEmptyState() {
         JPanel p = new JPanel(new GridBagLayout());
         p.setBackground(BG);
@@ -276,6 +323,12 @@ public class FoodSenseGUI {
 
     // ── Product view ──────────────────────────────────────────
 
+    /**
+     * Scrollable nutrition / ingredients / allergens view for a product.
+     *
+     * @param p product with optional nutriments and allergen text
+     * @return content panel to swap into the center region
+     */
     private JPanel buildProductView(Product p) {
         JPanel sections = new JPanel();
         sections.setLayout(new BoxLayout(sections, BoxLayout.Y_AXIS));
@@ -309,6 +362,10 @@ public class FoodSenseGUI {
 
     // ── Sections ──────────────────────────────────────────────
 
+    /**
+     * @param n nutriments DTO (may contain null fields)
+     * @return "Nutrition Facts" section panel
+     */
     private JPanel buildNutritionSection(Nutriments n) {
         JPanel section = new JPanel();
         section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
@@ -321,6 +378,12 @@ public class FoodSenseGUI {
         return section;
     }
 
+    /**
+     * Builds the bordered per-100g nutrition grid rows.
+     *
+     * @param n nutriments source; null field values render as an em dash
+     * @return card panel of nutrient rows
+     */
     private JPanel buildNutritionLabel(Nutriments n) {
         JPanel card = new JPanel();
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
@@ -354,6 +417,13 @@ public class FoodSenseGUI {
         return card;
     }
 
+    /**
+     * @param name  left-side nutrient label
+     * @param value amount string, or blank/{@code null} for "—"
+     * @param unit  unit suffix (e.g. {@code g}, {@code kcal})
+     * @param sub   if true, indented muted "of which …" style row
+     * @return single nutrition row panel
+     */
     private JPanel mkNutritionRow(String name, String value, String unit, boolean sub) {
         JPanel row = new JPanel(new BorderLayout());
         row.setBackground(sub ? new Color(250, 252, 250) : CARD);
@@ -373,6 +443,10 @@ public class FoodSenseGUI {
         return row;
     }
 
+    /**
+     * @param p product whose {@code ingredients_text} is shown (fallback copy if blank)
+     * @return ingredients section panel
+     */
     private JPanel buildIngredientsSection(Product p) {
         JPanel section = new JPanel();
         section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
@@ -401,6 +475,12 @@ public class FoodSenseGUI {
         return section;
     }
 
+    /**
+     * Danger-styled allergens panel. Caller should only invoke when allergen text is present.
+     *
+     * @param p product with non-blank {@link Product#getAllergens_from_ingredients()}
+     * @return allergens section panel
+     */
     private JPanel buildAllergensSection(Product p) {
         JPanel section = new JPanel();
         section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
@@ -431,6 +511,11 @@ public class FoodSenseGUI {
 
     // ── Shared helpers ────────────────────────────────────────
 
+    /**
+     * @param title    section heading
+     * @param subtitle optional muted line under the title; {@code null} to omit
+     * @return title block panel
+     */
     private JPanel mkSectionTitle(String title, String subtitle) {
         JPanel p = new JPanel();
         p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
@@ -454,6 +539,11 @@ public class FoodSenseGUI {
         return p;
     }
 
+    /**
+     * @param grade    Nutri-Score letter (case-insensitive)
+     * @param fontSize badge font size in points
+     * @return opaque colored badge label
+     */
     private JLabel mkNutriscoreBadge(String grade, int fontSize) {
         JLabel badge = new JLabel(grade.toUpperCase());
         badge.setFont(new Font(F, Font.BOLD, fontSize));
@@ -464,6 +554,12 @@ public class FoodSenseGUI {
         return badge;
     }
 
+    /**
+     * Maps Nutri-Score A–E to badge background colors; unknown grades use {@link #MUTED}.
+     *
+     * @param grade Nutri-Score letter
+     * @return background color for the badge
+     */
     private Color getNutriscoreColor(String grade) {
         return switch (grade.toUpperCase()) {
             case "A" -> new Color(0, 150, 57);
@@ -477,6 +573,10 @@ public class FoodSenseGUI {
 
     // ── Logic ─────────────────────────────────────────────────
 
+    /**
+     * Opens the webcam scan pipeline; on detect, fills the search field and runs {@link #searchProduct()}
+     * on the EDT.
+     */
     private void startBarcodeScanner() {
         VideoProcessor vp = new VideoProcessor(barcode -> SwingUtilities.invokeLater(() -> {
             searchField.setText(barcode);
@@ -485,6 +585,10 @@ public class FoodSenseGUI {
         vp.start();
     }
 
+    /**
+     * Reads the barcode field, disables controls, fetches on a background thread, then updates the UI
+     * on the EDT. Shows a warning dialog for empty input or a failed/not-found lookup.
+     */
     private void searchProduct() {
         String barcode = searchField.getText().trim();
         if (barcode.isEmpty()) {
@@ -514,6 +618,11 @@ public class FoodSenseGUI {
         }).start();
     }
 
+    /**
+     * Replaces the center content panel. Must run on the EDT.
+     *
+     * @param next panel to show (empty state or product view)
+     */
     private void swapContent(JPanel next) {
         root.remove(contentArea);
         contentArea = next;
@@ -522,6 +631,13 @@ public class FoodSenseGUI {
         root.repaint();
     }
 
+    /**
+     * GETs {@code https://world.openfoodfacts.net/api/v2/product/{barcode}} and deserializes with Gson.
+     * Network I/O — call off the EDT.
+     *
+     * @param barcode product barcode (path segment; not URL-encoded here)
+     * @return product when {@code status != 0}; {@code null} when not found or on any failure
+     */
     private Product fetchProductFromAPI(String barcode) {
         try {
             Gson gson = new Gson();

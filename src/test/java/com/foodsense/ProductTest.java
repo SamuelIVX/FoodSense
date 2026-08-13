@@ -1,3 +1,7 @@
+/*
+ * Unit tests for {@link Product} getters/setters (name, brands, Nutri-Score, ingredients, images).
+ */
+
 package com.foodsense;
 
 import org.junit.jupiter.api.BeforeEach;
