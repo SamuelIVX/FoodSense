@@ -74,6 +74,10 @@ public class Product {
      * Absent when the API omits the field; unavailable scores use separate status fields, not this value.
      *
      * @return Nutri-Score grade letter, or {@code null} when absent
+     * @example
+     * <pre>{@code
+     * String grade = product.getNutriscore_grade(); // e.g. "a"
+     * }</pre>
      */
     public String getNutriscore_grade() {
         return nutriscore_grade;

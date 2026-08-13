@@ -32,7 +32,13 @@ public class VideoProcessor {
      */
     public interface BarcodeListener {
         /**
+         * Called on the consumer thread after a successful ZXing decode.
+         *
          * @param barcodeText decoded barcode payload (digits / text as returned by ZXing)
+         * @example
+         * <pre>{@code
+         * barcode -> SwingUtilities.invokeLater(() -> searchField.setText(barcode))
+         * }</pre>
          */
         void onBarcodeDetected(String barcodeText);
     }
@@ -42,7 +48,14 @@ public class VideoProcessor {
     private volatile boolean running = false;
 
     /**
+     * Creates a scanner that will notify {@code listener} when a code is found.
+     *
      * @param listener notified when a barcode is detected; may be {@code null} to skip callbacks
+     * @example
+     * <pre>{@code
+     * VideoProcessor vp = new VideoProcessor(code -> System.out.println(code));
+     * vp.start();
+     * }</pre>
      */
     public VideoProcessor(BarcodeListener listener) {
         this.listener = listener;
@@ -50,6 +63,12 @@ public class VideoProcessor {
 
     /**
      * Starts producer (webcam grab) and consumer (decode + preview) threads if not already running.
+     * Opens a {@code CanvasFrame} titled "Live Barcode Scanner".
+     *
+     * @example
+     * <pre>{@code
+     * new VideoProcessor(System.out::println).start();
+     * }</pre>
      */
     public void start() {
         if (running)
@@ -65,6 +84,14 @@ public class VideoProcessor {
     /**
      * Signals both threads to exit and clears the frame queue.
      * Safe to call from the CanvasFrame close listener or after a successful decode.
+     *
+     * @example
+     * <pre>{@code
+     * VideoProcessor vp = new VideoProcessor(null);
+     * vp.start();
+     * // later, or from windowClosing:
+     * vp.stop();
+     * }</pre>
      */
     public void stop() {
         running = false;
