@@ -50,6 +50,12 @@ public class FoodSenseGUI {
     /**
      * Constructs the main frame and widget tree (not yet visible).
      * Call {@link #start()} to show the window.
+     *
+     * @example
+     * <pre>{@code
+     * FoodSenseGUI gui = new FoodSenseGUI();
+     * gui.start();
+     * }</pre>
      */
     public FoodSenseGUI() {
         build();
@@ -58,6 +64,11 @@ public class FoodSenseGUI {
     /**
      * Makes the main frame visible. Must be called after construction on the EDT
      * (or before any other Swing work if this is the first Swing touch in the process).
+     *
+     * @example
+     * <pre>{@code
+     * new FoodSenseGUI().start();
+     * }</pre>
      */
     public void start() {
         frame.setVisible(true);
@@ -633,10 +644,14 @@ public class FoodSenseGUI {
 
     /**
      * GETs {@code https://world.openfoodfacts.net/api/v2/product/{barcode}} and deserializes with Gson.
-     * Network I/O — call off the EDT.
+     * Network I/O — call off the EDT. Failures are swallowed (logged to stderr) and return {@code null}.
      *
      * @param barcode product barcode (path segment; not URL-encoded here)
      * @return product when {@code status != 0}; {@code null} when not found or on any failure
+     * @example
+     * <pre>{@code
+     * Product p = fetchProductFromAPI("3017620422003"); // Nutella, if present on staging
+     * }</pre>
      */
     private Product fetchProductFromAPI(String barcode) {
         try {

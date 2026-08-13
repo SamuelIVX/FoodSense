@@ -40,13 +40,25 @@ public class Nutriments {
      * Energy mapped from JSON key {@code energy} onto the internal {@code calories} field.
      *
      * @return energy/calories amount string, or {@code null}
+     * @example
+     * <pre>{@code
+     * // after Gson maps {"energy":"2000"} → getEnergy() == "2000"
+     * String kcal = nutriments.getEnergy();
+     * }</pre>
      */
     public String getEnergy() {
         return calories;
     }
 
     /**
+     * Stores energy under the internal {@code calories} field ({@code @SerializedName("energy")}).
+     *
      * @param energy energy value; stored under the {@code calories} field ({@code @SerializedName("energy")})
+     * @example
+     * <pre>{@code
+     * nutriments.setEnergy("2000");
+     * assert "2000".equals(nutriments.getEnergy());
+     * }</pre>
      */
     public void setEnergy(String energy) {
         this.calories = energy;
@@ -86,12 +98,18 @@ public class Nutriments {
      * Saturated fat mapped from JSON key {@code saturated-fat}.
      *
      * @return saturated fat amount string, or {@code null}
+     * @example
+     * <pre>{@code
+     * // after Gson maps {"saturated-fat":"20"} → getSaturated_fat() == "20"
+     * }</pre>
      */
     public String getSaturated_fat() {
         return saturated_fat;
     }
 
-    /** @param saturated_fat saturated fat amount from the API */
+    /**
+     * @param saturated_fat saturated fat amount from the API
+     */
     public void setSaturated_fat(String saturated_fat) {
         this.saturated_fat = saturated_fat;
     }
@@ -120,6 +138,10 @@ public class Nutriments {
      * Human-readable dump of all nutriment fields (debug / logging aid).
      *
      * @return multi-line summary; missing fields appear as {@code null} in the text
+     * @example
+     * <pre>{@code
+     * System.out.println(nutriments); // "Carbohydrates: …\nEnergy: …\n…"
+     * }</pre>
      */
     @Override
     public String toString() {

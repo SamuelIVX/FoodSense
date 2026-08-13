@@ -14,13 +14,23 @@ public class ApiResponse {
     private String code;
 
     /**
+     * Open Food Facts lookup status flag.
+     *
      * @return API status (typically {@code 1} when found, {@code 0} when not)
+     * @example
+     * <pre>{@code
+     * if (response.getStatus() == 0) {
+     *     // product not found
+     * }
+     * }</pre>
      */
     public int getStatus() {
         return status;
     }
 
     /**
+     * Product body when the lookup succeeded.
+     *
      * @return deserialized product, or {@code null} when not found / absent
      */
     public Product getProduct() {
@@ -28,6 +38,8 @@ public class ApiResponse {
     }
 
     /**
+     * Barcode echoed by the API envelope.
+     *
      * @return barcode string echoed by the API, if present
      */
     public String getCode() {
