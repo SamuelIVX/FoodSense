@@ -1,9 +1,10 @@
-/**
+/*
  * Swing UI and Open Food Facts client for FoodSense.
  * Builds the sidebar + product view, runs barcode search on a background thread,
  * and marshals UI updates onto the EDT via {@link SwingUtilities#invokeLater}.
  * Hits the staging host {@code world.openfoodfacts.net} (not {@code .org}).
  */
+
 package com.foodsense;
 
 import javax.swing.*;

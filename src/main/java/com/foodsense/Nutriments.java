@@ -1,7 +1,8 @@
-/**
+/*
  * Gson DTO for Open Food Facts nutriment values (typically per 100g).
  * Uses {@link com.google.gson.annotations.SerializedName} for {@code energy} and {@code saturated-fat}.
  */
+
 package com.foodsense;
 
 import com.google.gson.annotations.SerializedName;

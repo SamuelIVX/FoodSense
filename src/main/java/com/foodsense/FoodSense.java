@@ -1,7 +1,8 @@
-/**
+/*
  * Application entry point for FoodSense.
  * Instantiates {@link FoodSenseGUI} and shows the main window via {@link FoodSenseGUI#start()}.
  */
+
 package com.foodsense;
 
 /**

@@ -1,7 +1,8 @@
-/**
+/*
  * Gson DTO for an Open Food Facts product-lookup response envelope.
  * Field names match the API JSON ({@code status}, {@code product}, {@code code}).
  */
+
 package com.foodsense;
 
 /**

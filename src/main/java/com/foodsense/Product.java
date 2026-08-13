@@ -1,7 +1,8 @@
-/**
+/*
  * Gson DTO for an Open Food Facts product record shown in the UI.
  * Field names match API snake_case keys (e.g. {@code product_name}, {@code nutriscore_grade}).
  */
+
 package com.foodsense;
 
 /**
@@ -69,13 +70,18 @@ public class Product {
     }
 
     /**
-     * @return Nutri-Score letter (A–E), or {@code null} when unknown
+     * Nutri-Score letter from Open Food Facts ({@code a}–{@code e}, typically lowercase).
+     * Absent when the API omits the field; unavailable scores use separate status fields, not this value.
+     *
+     * @return Nutri-Score grade letter, or {@code null} when absent
      */
     public String getNutriscore_grade() {
         return nutriscore_grade;
     }
 
-    /** @param nutriscore_grade Nutri-Score letter from the API */
+    /**
+     * @param nutriscore_grade Nutri-Score letter ({@code a}–{@code e}) from the API, or {@code null}
+     */
     public void setNutriscore_grade(String nutriscore_grade) {
         this.nutriscore_grade = nutriscore_grade;
     }

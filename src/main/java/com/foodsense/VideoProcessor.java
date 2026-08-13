@@ -1,8 +1,9 @@
-/**
+/*
  * Live webcam barcode scan pipeline: OpenCV grabber producer + ZXing decode consumer.
  * Uses a bounded {@link java.util.concurrent.BlockingQueue} of frames and notifies a
  * {@link BarcodeListener} when a code is found. Side effect: opens a JavaCV {@code CanvasFrame}.
  */
+
 package com.foodsense;
 
 import java.awt.image.BufferedImage;

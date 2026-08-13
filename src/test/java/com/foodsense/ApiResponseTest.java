@@ -1,6 +1,6 @@
-/**
- * Unit tests for {@link ApiResponse} getters and null-product handling.
- * Does not populate private fields via reflection; several cases only assert non-null construction.
+/*
+ * Unit tests for ApiResponse construction and null-product handling.
+ * Does not populate private fields via reflection; status/code cases only assert non-null construction.
  */
 package com.foodsense;
 
