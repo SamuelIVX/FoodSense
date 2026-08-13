@@ -1,3 +1,8 @@
+/**
+ * Live webcam barcode scan pipeline: OpenCV grabber producer + ZXing decode consumer.
+ * Uses a bounded {@link java.util.concurrent.BlockingQueue} of frames and notifies a
+ * {@link BarcodeListener} when a code is found. Side effect: opens a JavaCV {@code CanvasFrame}.
+ */
 package com.foodsense;
 
 import java.awt.image.BufferedImage;
@@ -14,8 +19,20 @@ import static org.bytedeco.opencv.global.opencv_imgproc.*;
 
 import javax.swing.WindowConstants;
 
+/**
+ * Producer/consumer webcam scanner. Call {@link #start()} once; {@link #stop()} ends both threads.
+ * Assumes a display and camera device {@code 0}; not safe to start twice without stopping first
+ * (second {@link #start()} is a no-op while {@code running}).
+ */
 public class VideoProcessor {
+    /**
+     * Callback invoked on the consumer thread when a barcode is decoded.
+     * Callers that touch Swing must marshal to the EDT themselves.
+     */
     public interface BarcodeListener {
+        /**
+         * @param barcodeText decoded barcode payload (digits / text as returned by ZXing)
+         */
         void onBarcodeDetected(String barcodeText);
     }
 
@@ -23,10 +40,16 @@ public class VideoProcessor {
     private final BarcodeListener listener;
     private volatile boolean running = false;
 
+    /**
+     * @param listener notified when a barcode is detected; may be {@code null} to skip callbacks
+     */
     public VideoProcessor(BarcodeListener listener) {
         this.listener = listener;
     }
 
+    /**
+     * Starts producer (webcam grab) and consumer (decode + preview) threads if not already running.
+     */
     public void start() {
         if (running)
             return;
@@ -38,11 +61,19 @@ public class VideoProcessor {
         consumer.start();
     }
 
+    /**
+     * Signals both threads to exit and clears the frame queue.
+     * Safe to call from the CanvasFrame close listener or after a successful decode.
+     */
     public void stop() {
         running = false;
         frameQueue.clear();
     }
 
+    /**
+     * Grabs frames from camera index 0 and offers clones into {@link #frameQueue}.
+     * Clones are required because {@code grab()} reuses its internal buffer.
+     */
     private class ProducerTask implements Runnable {
         @Override
         public void run() {
@@ -71,13 +102,27 @@ public class VideoProcessor {
         }
     }
 
+    /**
+     * Polls frames, runs ZXing decode, draws an optional green box, and shows the live preview.
+     */
     private class ConsumerTask implements Runnable {
         private final BarcodeListener listener;
 
+        /**
+         * @param listener same listener passed to the outer {@link VideoProcessor}
+         */
         public ConsumerTask(BarcodeListener listener) {
             this.listener = listener;
         }
 
+        /**
+         * Draws a padded green rectangle when ZXing returns exactly two result points
+         * (typical for 1D barcodes). Leaves the frame unchanged otherwise.
+         *
+         * @param result ZXing decode result with geometry points
+         * @param frame  current preview frame to annotate
+         * @return frame with box drawn, or the original frame when points are unsuitable
+         */
         private Frame drawBoxOverBarcode(Result result, Frame frame) {
             ResultPoint[] points = result.getResultPoints();
 

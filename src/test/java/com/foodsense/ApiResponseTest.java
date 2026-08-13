@@ -1,3 +1,7 @@
+/**
+ * Unit tests for {@link ApiResponse} getters and null-product handling.
+ * Does not populate private fields via reflection; several cases only assert non-null construction.
+ */
 package com.foodsense;
 
 import org.junit.jupiter.api.BeforeEach;

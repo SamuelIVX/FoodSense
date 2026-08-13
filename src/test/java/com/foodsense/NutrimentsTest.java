@@ -1,3 +1,6 @@
+/**
+ * Unit tests for {@link Nutriments} getters/setters including energy and saturated-fat mappings.
+ */
 package com.foodsense;
 
 import org.junit.jupiter.api.BeforeEach;
