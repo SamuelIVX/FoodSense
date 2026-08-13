@@ -51,13 +51,13 @@ public class Nutriments {
     }
 
     /**
-     * Stores energy under the internal {@code calories} field ({@code @SerializedName("energy")}).
+     * Stores energy under the internal {@code calories} field (JSON key {@code energy}).
      *
-     * @param energy energy value; stored under the {@code calories} field ({@code @SerializedName("energy")})
+     * @param energy energy/calories amount from the API
      * @example
      * <pre>{@code
      * nutriments.setEnergy("2000");
-     * assert "2000".equals(nutriments.getEnergy());
+     * // getEnergy() returns "2000"
      * }</pre>
      */
     public void setEnergy(String energy) {
@@ -108,7 +108,14 @@ public class Nutriments {
     }
 
     /**
+     * Stores saturated fat (JSON key {@code saturated-fat}).
+     *
      * @param saturated_fat saturated fat amount from the API
+     * @example
+     * <pre>{@code
+     * nutriments.setSaturated_fat("20");
+     * // getSaturated_fat() returns "20"
+     * }</pre>
      */
     public void setSaturated_fat(String saturated_fat) {
         this.saturated_fat = saturated_fat;

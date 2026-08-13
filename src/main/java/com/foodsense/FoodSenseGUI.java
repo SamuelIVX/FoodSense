@@ -648,10 +648,6 @@ public class FoodSenseGUI {
      *
      * @param barcode product barcode (path segment; not URL-encoded here)
      * @return product when {@code status != 0}; {@code null} when not found or on any failure
-     * @example
-     * <pre>{@code
-     * Product p = fetchProductFromAPI("3017620422003"); // Nutella, if present on staging
-     * }</pre>
      */
     private Product fetchProductFromAPI(String barcode) {
         try {
