@@ -11,11 +11,17 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 
 /**
  * Client for fetching product nutrition data from the Open Food Facts API.
  */
 public class ProductApiClient {
+
+    private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(10);
+    private static final HttpClient DEFAULT_HTTP_CLIENT = HttpClient.newBuilder()
+            .connectTimeout(DEFAULT_TIMEOUT)
+            .build();
 
     /** Functional interface abstraction for sending HTTP requests. */
     @FunctionalInterface
@@ -42,7 +48,17 @@ public class ProductApiClient {
      * @param host API host domain
      */
     public ProductApiClient(String host) {
-        this(host, request -> HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString()));
+        this(host, DEFAULT_HTTP_CLIENT);
+    }
+
+    /**
+     * Constructs a client with explicit host and configured HttpClient.
+     *
+     * @param host       API host domain
+     * @param httpClient shared HttpClient instance
+     */
+    public ProductApiClient(String host, HttpClient httpClient) {
+        this(host, request -> httpClient.send(request, HttpResponse.BodyHandlers.ofString()));
     }
 
     /**
@@ -53,7 +69,7 @@ public class ProductApiClient {
      */
     public ProductApiClient(String host, HttpSender httpSender) {
         this.host = host != null && !host.isBlank() ? host : resolveDefaultHost();
-        this.httpSender = httpSender != null ? httpSender : request -> HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
+        this.httpSender = httpSender != null ? httpSender : request -> DEFAULT_HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
         this.gson = new Gson();
     }
 
@@ -63,12 +79,21 @@ public class ProductApiClient {
      *
      * @return host string
      */
-    public static String resolveDefaultHost() {
-        String sysProp = System.getProperty("foodsense.host");
+    static String resolveDefaultHost() {
+        return resolveHost(System.getProperty("foodsense.host"), System.getenv("FOODSENSE_HOST"));
+    }
+
+    /**
+     * Resolves host from explicit system property and environment variable inputs.
+     *
+     * @param sysProp system property value (may be null)
+     * @param envVar  environment variable value (may be null)
+     * @return resolved host string
+     */
+    static String resolveHost(String sysProp, String envVar) {
         if (sysProp != null && !sysProp.isBlank()) {
             return sysProp;
         }
-        String envVar = System.getenv("FOODSENSE_HOST");
         if (envVar != null && !envVar.isBlank()) {
             return envVar;
         }
@@ -108,6 +133,7 @@ public class ProductApiClient {
         try {
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(buildUri(barcode.trim()))
+                    .timeout(DEFAULT_TIMEOUT)
                     .GET()
                     .build();
             HttpResponse<String> resp = httpSender.send(request);

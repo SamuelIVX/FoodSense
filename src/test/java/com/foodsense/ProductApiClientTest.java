@@ -32,6 +32,26 @@ class ProductApiClientTest {
     }
 
     @Test
+    void testResolveDefaultHostWithNoOverrides() {
+        assertEquals(ProductApiClient.DEFAULT_HOST, ProductApiClient.resolveHost(null, null));
+    }
+
+    @Test
+    void testResolveHostPrefersSystemProperty() {
+        assertEquals("staging.openfoodfacts.org", ProductApiClient.resolveHost("staging.openfoodfacts.org", null));
+    }
+
+    @Test
+    void testResolveHostFallsBackToEnvVar() {
+        assertEquals("staging.openfoodfacts.org", ProductApiClient.resolveHost(null, "staging.openfoodfacts.org"));
+    }
+
+    @Test
+    void testResolveHostSystemPropertyTakesPrecedenceOverEnvVar() {
+        assertEquals("staging.openfoodfacts.org", ProductApiClient.resolveHost("staging.openfoodfacts.org", "env.openfoodfacts.org"));
+    }
+
+    @Test
     void testDefaultHostResolution() {
         ProductApiClient client = new ProductApiClient();
         assertEquals(ProductApiClient.DEFAULT_HOST, client.getHost());

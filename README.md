@@ -94,7 +94,7 @@ FOODSENSE_HOST=world.openfoodfacts.org java -cp target/classes:$(mvn dependency:
 
 ## Project Structure
 
-```
+```text
 src/main/java/com/foodsense/
 ├── FoodSense.java          # Main entry point (CLI springboard + GUI launcher)
 ├── ProductApiClient.java   # Open Food Facts API client & host resolver (.org default)
