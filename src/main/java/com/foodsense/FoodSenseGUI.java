@@ -11,8 +11,6 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.net.URI;
-import java.net.http.*;
-import com.google.gson.Gson;
 
 /**
  * Main application window: manual barcode entry, webcam scan handoff, and nutrition display.
@@ -34,6 +32,7 @@ public class FoodSenseGUI {
     private static final String F             = "Segoe UI";
 
     // ── State ─────────────────────────────────────────────────
+    private final ProductApiClient apiClient;
     private JFrame     frame;
     private JPanel     root;
     private JPanel     contentArea;
@@ -48,16 +47,20 @@ public class FoodSenseGUI {
     private JPanel scorePanel;
 
     /**
-     * Constructs the main frame and widget tree (not yet visible).
+     * Constructs the main frame and widget tree with a default API client.
      * Call {@link #start()} to show the window.
-     *
-     * @example
-     * <pre>{@code
-     * FoodSenseGUI gui = new FoodSenseGUI();
-     * gui.start();
-     * }</pre>
      */
     public FoodSenseGUI() {
+        this(new ProductApiClient());
+    }
+
+    /**
+     * Constructs the main frame and widget tree with a custom API client.
+     *
+     * @param apiClient API client instance
+     */
+    public FoodSenseGUI(ProductApiClient apiClient) {
+        this.apiClient = apiClient != null ? apiClient : new ProductApiClient();
         build();
     }
 
@@ -612,7 +615,7 @@ public class FoodSenseGUI {
         searchBtn.setText("...");
 
         new Thread(() -> {
-            Product product = fetchProductFromAPI(barcode);
+            Product product = apiClient.fetchProduct(barcode);
             SwingUtilities.invokeLater(() -> {
                 if (product != null) {
                     updateSidebar(product);
@@ -640,29 +643,5 @@ public class FoodSenseGUI {
         root.add(contentArea, BorderLayout.CENTER);
         root.revalidate();
         root.repaint();
-    }
-
-    /**
-     * GETs {@code https://world.openfoodfacts.net/api/v2/product/{barcode}} and deserializes with Gson.
-     * Network I/O — call off the EDT. Failures are swallowed (logged to stderr) and return {@code null}.
-     *
-     * @param barcode product barcode (path segment; not URL-encoded here)
-     * @return product when {@code status != 0}; {@code null} when not found or on any failure
-     */
-    private Product fetchProductFromAPI(String barcode) {
-        try {
-            Gson gson = new Gson();
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("https://world.openfoodfacts.net/api/v2/product/" + barcode))
-                    .GET()
-                    .build();
-            HttpResponse<String> resp = HttpClient.newHttpClient()
-                    .send(request, HttpResponse.BodyHandlers.ofString());
-            ApiResponse api = gson.fromJson(resp.body(), ApiResponse.class);
-            return api.getStatus() == 0 ? null : api.getProduct();
-        } catch (Exception e) {
-            System.err.println("API Error: " + e.getMessage());
-            return null;
-        }
     }
 }
