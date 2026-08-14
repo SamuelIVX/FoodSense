@@ -59,15 +59,27 @@ This will download all dependencies including:
 
 ### 3. Run the Application
 
-**Option A: From IDE (Recommended)**
-1. Open the project in your IDE (IntelliJ IDEA, Eclipse, etc.)
-2. Set project SDK to JDK 25
-3. Run the `FoodSense` class
-
-**Option B: From Command Line**
+**Option A: Interactive Swing GUI**
 
 ```bash
-java -cp target/classes com.foodsense.FoodSense
+mvn compile exec:java -Dexec.mainClass="com.foodsense.FoodSense"
+```
+
+**Option B: Headless CLI Barcode Search**
+
+```bash
+mvn compile exec:java -Dexec.mainClass="com.foodsense.FoodSense" -Dexec.args="-b 0049000006346"
+```
+
+**Option C: Custom Host Configuration**
+
+Default host is `world.openfoodfacts.org`. Override host via System Property or Environment Variable:
+
+```bash
+# System Property override:
+mvn compile exec:java -Dexec.mainClass="com.foodsense.FoodSense" -Dfoodsense.host="staging.openfoodfacts.org" -Dexec.args="-b 0049000006346"
+# Environment Variable override:
+FOODSENSE_HOST=world.openfoodfacts.org java -cp target/classes:$(mvn dependency:build-classpath | grep -v '\[INFO\]' | tr '\n' ':') com.foodsense.FoodSense -b 0049000006346
 ```
 
 ## Usage
@@ -78,19 +90,15 @@ java -cp target/classes com.foodsense.FoodSense
 
 2. **Manual Search**: Enter a barcode number in the text field and click "Search"
 
-3. **View Results**: The app displays:
-   - Product name and brand
-   - Nutri-Score with color coding
-   - Complete nutrition facts grid
-   - Full ingredients list
-   - Product image (if available)
+3. **CLI Mode**: Run `com.foodsense.FoodSense -b <barcode>` for instant terminal output without opening a GUI window.
 
 ## Project Structure
 
-```
+```text
 src/main/java/com/foodsense/
-├── FoodSense.java          # Application entry point
-├── FoodSenseGUI.java       # Main UI and API integration
+├── FoodSense.java          # Main entry point (CLI springboard + GUI launcher)
+├── ProductApiClient.java   # Open Food Facts API client & host resolver (.org default)
+├── FoodSenseGUI.java       # Swing desktop GUI renderer
 ├── VideoProcessor.java     # Webcam capture and barcode detection
 ├── Product.java            # Product data model
 ├── Nutriments.java         # Nutrition data model
