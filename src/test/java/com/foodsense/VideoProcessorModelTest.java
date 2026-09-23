@@ -5,7 +5,10 @@ import dev.samhb.interleave.InterleaveRunner;
 import dev.samhb.interleave.TestResult;
 import dev.samhb.interleave.core.*;
 import dev.samhb.interleave.dpor.DporExplorer;
+import dev.samhb.interleave.por.StaticPorExplorer;
 import dev.samhb.interleave.search.*;
+import dev.samhb.interleave.state.BitstateStore;
+import dev.samhb.interleave.state.HashingStateStore;
 import dev.samhb.interleave.Strategy;
 import org.junit.jupiter.api.Test;
 
@@ -543,4 +546,140 @@ private Program createProgram() {
 
         assertTrue(result.statesExplored() > 0, "Should explore some states");
     }
+
+    // --- Bitstate + Strategy Tests ---
+
+    private DfsResult runWithStore(Program program, Strategy strategy, StateStore store) {
+        return switch (strategy) {
+            case DFS -> new DfsExplorer().explore(program, noDeadlockInvariant, store, null);
+            case STATIC_POR -> new StaticPorExplorer().explore(program, noDeadlockInvariant, store, null);
+            case DPOR -> new DporExplorer().explore(program, noDeadlockInvariant, store, null);
+        };
+    }
+
+    private boolean hasViolation(DfsResult result) {
+        return result.traces().stream()
+            .anyMatch(t -> t.outcome() == TraceOutcome.VIOLATION);
+    }
+
+    @Test
+    void dfsExactFindsNoViolation() {
+        Program program = createProgram();
+        DfsResult result = runWithStore(program, Strategy.DFS, new HashingStateStore());
+
+        assertFalse(hasViolation(result), "DFS + exact should find no violation");
+        assertTrue(result.statesExplored() > 0, "Should explore states");
+    }
+
+    @Test
+    void dfsBitstateFindsNoViolation() {
+        Program program = createProgram();
+        DfsResult result = runWithStore(program, Strategy.DFS, new BitstateStore(1_000_003, 4));
+
+        assertFalse(hasViolation(result), "DFS + bitstate should find no violation");
+        assertTrue(result.statesExplored() > 0, "Should explore states");
+    }
+
+    @Test
+    void staticPorExactFindsNoViolation() {
+        Program program = createProgram();
+        DfsResult result = runWithStore(program, Strategy.STATIC_POR, new HashingStateStore());
+
+        assertFalse(hasViolation(result), "STATIC_POR + exact should find no violation");
+        assertTrue(result.statesExplored() > 0, "Should explore states");
+    }
+
+    @Test
+    void staticPorBitstateFindsNoViolation() {
+        Program program = createProgram();
+        DfsResult result = runWithStore(program, Strategy.STATIC_POR, new BitstateStore(1_000_003, 4));
+
+        assertFalse(hasViolation(result), "STATIC_POR + bitstate should find no violation");
+        assertTrue(result.statesExplored() > 0, "Should explore states");
+    }
+
+    @Test
+    void dporExactFindsNoViolation() {
+        Program program = createProgram();
+        DfsResult result = runWithStore(program, Strategy.DPOR, new HashingStateStore());
+
+        assertFalse(hasViolation(result), "DPOR + exact should find no violation");
+        assertTrue(result.statesExplored() > 0, "Should explore states");
+    }
+
+    @Test
+    void dporBitstateFindsNoViolation() {
+        Program program = createProgram();
+        DfsResult result = runWithStore(program, Strategy.DPOR, new BitstateStore(1_000_003, 4));
+
+        assertFalse(hasViolation(result), "DPOR + bitstate should find no violation");
+        assertTrue(result.statesExplored() > 0, "Should explore states");
+    }
+
+    @Test
+    void bitstateMetricsPopulated() {
+        Program program = createProgram();
+        BitstateStore store = new BitstateStore(1_000_003, 4);
+
+        runWithStore(program, Strategy.DPOR, store);
+
+        assertTrue(store.estimatedFalsePositiveRate() >= 0.0,
+            "FPR should be non-negative: " + store.estimatedFalsePositiveRate());
+        assertTrue(store.bitCount() > 0,
+            "bitCount should be positive: " + store.bitCount());
+        assertTrue(store.bitDensity() > 0.0,
+            "bitDensity should be positive: " + store.bitDensity());
+    }
+
+    @Test
+    void runnerWithBitstateStore() {
+        Program program = createProgram();
+
+        InterleaveRunner runner = InterleaveRunner.builder()
+            .strategy(Strategy.DPOR)
+            .stateStoreFactory(() -> new BitstateStore(1_000_003, 4))
+            .maxStates(1000)
+            .build();
+
+        TestResult result = runner.run(program);
+
+        assertFalse(result.hasViolation(),
+            "Runner with bitstate should find no violation: " + result.failingTraces());
+        assertTrue(result.statesExplored() > 0, "Should explore states");
+    }
+
+    @Test
+    void bitstateWithExternalStop() {
+        Program program = createProgramWithExternalStop();
+        DfsResult result = runWithStore(program, Strategy.DPOR, new BitstateStore(1_000_003, 4));
+
+        assertFalse(hasViolation(result),
+            "Bitstate with external stop should find no violation. " +
+            "Found traces: " + result.traces());
+        assertTrue(result.statesExplored() > 0, "Should explore states");
+    }
+
+    @Test
+    void allStrategiesProduceSameVerdict() {
+        Program program = createProgram();
+
+        for (StoreType storeType : StoreType.values()) {
+            StateStore store = storeType == StoreType.EXACT
+                ? new HashingStateStore()
+                : new BitstateStore(1_000_003, 4);
+
+            boolean dfsViol = hasViolation(runWithStore(program, Strategy.DFS, store));
+            store = storeType == StoreType.EXACT ? new HashingStateStore() : new BitstateStore(1_000_003, 4);
+            boolean porViol = hasViolation(runWithStore(program, Strategy.STATIC_POR, store));
+            store = storeType == StoreType.EXACT ? new HashingStateStore() : new BitstateStore(1_000_003, 4);
+            boolean dporViol = hasViolation(runWithStore(program, Strategy.DPOR, store));
+
+            assertEquals(dfsViol, porViol,
+                "DFS and STATIC_POR should agree on verdict for " + storeType);
+            assertEquals(dfsViol, dporViol,
+                "DFS and DPOR should agree on verdict for " + storeType);
+        }
+    }
+
+    enum StoreType { EXACT, BITSTATE }
 }
