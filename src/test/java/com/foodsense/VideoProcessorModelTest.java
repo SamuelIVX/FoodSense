@@ -623,8 +623,9 @@ private Program createProgram() {
 
         runWithStore(program, Strategy.DPOR, store);
 
-        assertTrue(store.estimatedFalsePositiveRate() >= 0.0,
-            "FPR should be non-negative: " + store.estimatedFalsePositiveRate());
+        double fpr = store.estimatedFalsePositiveRate();
+        assertTrue(fpr >= 0.0 && fpr < 1e-6,
+            "FPR should be near zero for a small state space: " + fpr);
         assertTrue(store.bitCount() > 0,
             "bitCount should be positive: " + store.bitCount());
         assertTrue(store.bitDensity() > 0.0,
