@@ -13,6 +13,7 @@
         <maven.compiler.source>25</maven.compiler.source>
         <maven.compiler.target>25</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <interleave.exclude>**/VideoProcessorModelTest.java</interleave.exclude>
     </properties>
 
     <dependencies>
@@ -58,13 +59,51 @@
         </dependency>
     </dependencies>
 
+    <profiles>
+        <!-- Activate with: mvn test -Pinterleave -->
+        <profile>
+            <id>interleave</id>
+            <properties>
+                <interleave.exclude>none</interleave.exclude>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>dev.samhb.interleave</groupId>
+                    <artifactId>interleave</artifactId>
+                    <version>1.0-SNAPSHOT</version>
+                    <scope>test</scope>
+                </dependency>
+            </dependencies>
+            <repositories>
+                <repository>
+                    <id>local</id>
+                    <url>file://${user.home}/.m2/repository</url>
+                </repository>
+            </repositories>
+        </profile>
+    </profiles>
+
     <build>
         <plugins>
-            <!-- Maven Surefire Plugin for running JUnit 5 tests -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+                <configuration>
+                    <testExcludes>
+                        <testExclude>${interleave.exclude}</testExclude>
+                    </testExcludes>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.0.0-M9</version>
+                <configuration>
+                    <excludes>
+                        <exclude>${interleave.exclude}</exclude>
+                    </excludes>
+                </configuration>
             </plugin>
         </plugins>
     </build>
