@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
-      - uses: actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48
+      - uses: actions/dependency-review-action@v4 # was 2031cfc0 pinned - bump from Node20 to Node24
         with:
           fail-on-severity: high
           comment-summary-in-pr: always
