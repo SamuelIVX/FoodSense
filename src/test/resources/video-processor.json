@@ -1,0 +1,115 @@
+{
+  "format": "declarative",
+  "name": "video-processor",
+  "state": {
+    "fields": [
+      {
+        "name": "queue_size",
+        "type": "int",
+        "init": 0
+      },
+      {
+        "name": "producer_running",
+        "type": "bool",
+        "init": true
+      },
+      {
+        "name": "consumer_running",
+        "type": "bool",
+        "init": true
+      },
+      {
+        "name": "stop_called",
+        "type": "int",
+        "init": 0
+      },
+      {
+        "name": "grab_next",
+        "type": "int[]",
+        "init": [
+          1,
+          2,
+          2,
+          0,
+          1,
+          2
+        ]
+      },
+      {
+        "name": "dec",
+        "type": "int[]",
+        "init": [
+          0,
+          0,
+          1
+        ]
+      }
+    ],
+    "locals": []
+  },
+  "threads": [
+    {
+      "id": 0,
+      "steps": [
+        {
+          "guard": "producer_running",
+          "effects": [
+            "queue_size = grab_next[stop_called * 3 + queue_size]"
+          ]
+        },
+        {
+          "guard": "producer_running",
+          "effects": [
+            "queue_size = grab_next[stop_called * 3 + queue_size]"
+          ]
+        },
+        {
+          "guard": "producer_running",
+          "effects": [
+            "queue_size = grab_next[stop_called * 3 + queue_size]"
+          ]
+        },
+        {
+          "guard": "producer_running && stop_called == 1",
+          "effects": [
+            "producer_running = false"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "steps": [
+        {
+          "guard": "consumer_running && stop_called == 0 && (queue_size > 0 || producer_running == false)",
+          "effects": [
+            "queue_size = dec[queue_size]"
+          ]
+        },
+        {
+          "guard": "consumer_running && stop_called == 0",
+          "effects": [
+            "consumer_running = false",
+            "stop_called = 1"
+          ]
+        },
+        {
+          "guard": "!consumer_running || stop_called == 1",
+          "effects": [
+            "consumer_running = consumer_running"
+          ]
+        }
+      ]
+    }
+  ],
+  "invariant": {
+    "all": [
+      "stop_called == 1",
+      "producer_running == false",
+      "consumer_running == false",
+      "queue_size >= 0",
+      "queue_size <= 2"
+    ]
+  },
+  "expected_verdict": "PASS"
+}
