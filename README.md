@@ -133,3 +133,14 @@ src/main/java/com/foodsense/
 - Only barcode numbers are sent to the Open Food Facts API
 - No personal data or video footage is stored or transmitted
 - Webcam access requires explicit user activation
+
+## Deployment & Execution
+Download the appropriate `.jar` file for your operating system and architecture from the Releases page. 
+Requires **Java 25+** installed on your system.
+
+```bash
+java -jar FoodSense-macOS-ARM64.jar
+# or FoodSense-Windows-X64.jar / FoodSense-Linux-X64.jar
+```
+
+*Note for macOS users:* The latest releases are built for Apple Silicon (ARM64). When launching via terminal, ensure your terminal application (Terminal.app, iTerm) has Camera permissions granted in `System Settings > Privacy & Security > Camera` for live barcode scanning to function.
