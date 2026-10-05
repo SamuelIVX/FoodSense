@@ -23,6 +23,7 @@ jobs:
           cache: maven
 
       - name: Build Fat JAR
+        shell: bash
         run: mvn -Djavacpp.platform.host --batch-mode clean package -DskipTests
 
       - name: Print Output Size

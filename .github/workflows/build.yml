@@ -29,6 +29,7 @@ jobs:
 
       - name: Build and Test (Mac/Windows)
         if: runner.os != 'Linux'
+        shell: bash
         run: mvn -Djavacpp.platform.host --batch-mode clean verify
 
       - name: Upload PR Artifact
