@@ -15,6 +15,12 @@ public class Nutriments {
     @SerializedName("energy")
     private String calories;
 
+    @SerializedName("energy-kcal")
+    private String energyKcal;
+
+    @SerializedName("energy-kj")
+    private String energyKj;
+
     private String sugars;
     private String fat;
 
@@ -62,6 +68,38 @@ public class Nutriments {
      */
     public void setEnergy(String energy) {
         this.calories = energy;
+    }
+
+    /**
+     * Explicit energy in kcal (JSON key {@code energy-kcal}).
+     *
+     * @return energy in kcal string, or {@code null}
+     */
+    public String getEnergyKcal() {
+        return energyKcal;
+    }
+
+    /**
+     * @param energyKcal explicit energy in kcal from the API
+     */
+    public void setEnergyKcal(String energyKcal) {
+        this.energyKcal = energyKcal;
+    }
+
+    /**
+     * Explicit energy in kJ (JSON key {@code energy-kj}).
+     *
+     * @return energy in kJ string, or {@code null}
+     */
+    public String getEnergyKj() {
+        return energyKj;
+    }
+
+    /**
+     * @param energyKj explicit energy in kJ from the API
+     */
+    public void setEnergyKj(String energyKj) {
+        this.energyKj = energyKj;
     }
 
     /** @return fat amount string, or {@code null} */

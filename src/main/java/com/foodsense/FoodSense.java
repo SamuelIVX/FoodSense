@@ -42,7 +42,10 @@ public class FoodSense {
             return;
         }
 
-        FoodSenseGUI foodSenseGUI = new FoodSenseGUI();
-        foodSenseGUI.start();
+        javax.swing.SwingUtilities.invokeLater(() -> {
+            com.foodsense.ui.FoodSenseTheme.initialize();
+            FoodSenseGUI foodSenseGUI = new FoodSenseGUI();
+            foodSenseGUI.start();
+        });
     }
 }

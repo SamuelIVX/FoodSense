@@ -1,25 +1,28 @@
 # FoodSense
 
-FoodSense is a Java desktop application that scans barcodes to display nutrition data, ingredients, and Nutri-Score ratings via the Open Food Facts API. 
+FoodSense is a modern Java desktop application that scans grocery barcodes to display nutrition data, ingredients, allergen warnings, and official Nutri-Score ratings via the Open Food Facts API.
 
 ## Features
 
-- Live webcam scanning for real-time barcode detection
-- Manual barcode entry for quick lookups
-- Auto-generated nutrition facts grid
-- Nutri-Score and product image display
-- Full ingredient breakdown
+- **In-App Live Webcam Scanner:** Built-in modal dialog with illuminated corner reticles, animated scan guide, and automatic barcode detection.
+- **Modern Adaptive Theme:** Sleek desktop interface built with FlatLaf, supporting instant Light and Dark mode toggling via an icon button.
+- **Nutri-Score Spectrum Bar:** Displays the recognized European 5-pill indicator (A–E) with the active grade elevated and highlighted.
+- **Nutrition Facts & Macro Visualizer:** Hero calorie callout, visual macronutrient distribution bar (Carbs, Fats, Protein), and per-100g nutrient table.
+- **Allergen Alert Banners:** Highlighted alert cards parsing allergens with clear warning iconography.
+- **Hardened Security & Input Validation:** Strict barcode sanitization, Swing HTML injection defenses, bounded async image loading, and SSRF prevention.
+- **Headless CLI Mode:** Fast barcode query via `--barcode <code>` / `-b <code>` for headless terminal use without initializing GUI components.
 
 ## Tech Stack
 
-- **Java 25 / Swing:** Core application and GUI
+- **Java 25 / Swing:** Core desktop application and GUI
+- **FlatLaf:** Modern cross-platform Look and Feel with Retina HiDPI scaling
 - **JavaCV (OpenCV):** Webcam capture and computer vision
 - **ZXing:** Barcode decoding
-- **Gson:** JSON parsing
+- **Gson:** JSON deserialization
 
 ## Deployment & Execution
 
-You can run FoodSense directly without building from source. Download the `.jar` file for your operating system from the [Releases](https://github.com/SamuelIVX/FoodSense/releases) page. 
+Prebuilt platform-specific JARs are published on the [Releases](https://github.com/SamuelIVX/FoodSense/releases) page for macOS (Apple Silicon ARM64), Windows (x64), and Linux (x64).
 
 Requires **Java 25+** installed on your system.
 
@@ -28,11 +31,29 @@ java -jar FoodSense-macOS-ARM64.jar
 # or FoodSense-Windows-X64.jar / FoodSense-Linux-X64.jar
 ```
 
-*Note for macOS users:* The latest releases are built for Apple Silicon (ARM64). When launching via terminal, ensure your terminal application (Terminal.app, iTerm) has Camera permissions granted in `System Settings > Privacy & Security > Camera` for live barcode scanning to function.
+### Release Verification
+
+Every release publishes cryptographic SHA-256 checksums and GitHub build provenance attestations. To verify your downloaded artifact integrity:
+
+**macOS / Linux:**
+
+```bash
+shasum -a 256 -c FoodSense-macOS-ARM64.jar.sha256
+gh attestation verify FoodSense-macOS-ARM64.jar --repo SamuelIVX/FoodSense
+```
+
+**Windows (PowerShell):**
+
+```powershell
+Get-FileHash .\FoodSense-Windows-X64.jar -Algorithm SHA256
+gh attestation verify .\FoodSense-Windows-X64.jar --repo SamuelIVX/FoodSense
+```
+
+Compare the printed hash with the contents of `FoodSense-Windows-X64.jar.sha256`.
+
+*Note for macOS users:* When launching via terminal, ensure your terminal application (Terminal.app, iTerm) has Camera permissions granted in `System Settings > Privacy & Security > Camera` for live barcode scanning.
 
 ## Building from Source
-
-If you want to build the project yourself, clone the repository and use Maven.
 
 ```bash
 git clone https://github.com/SamuelIVX/FoodSense.git
@@ -40,9 +61,9 @@ cd FoodSense
 mvn clean package
 ```
 
-The Maven build uses the `maven-shade-plugin` and `javacpp.platform.host` to pull native dependencies for your specific operating system.
+The build produces a self-contained fat JAR in `target/` using `maven-shade-plugin`.
 
-### Running locally
+### Running Locally
 
 Interactive GUI:
 ```bash
@@ -63,25 +84,26 @@ mvn compile exec:java -Dexec.mainClass="com.foodsense.FoodSense" -Dfoodsense.hos
 
 ```text
 src/main/java/com/foodsense/
-├── FoodSense.java          # Main entry point (CLI springboard + GUI launcher)
-├── ProductApiClient.java   # API client and host resolver
-├── FoodSenseGUI.java       # Swing desktop renderer
-├── VideoProcessor.java     # Webcam capture and barcode detection
-├── Product.java            # Product data model
-├── Nutriments.java         # Nutrition data model
-└── ApiResponse.java        # API response wrapper
+├── FoodSense.java                  # Main entry point (CLI springboard + GUI launcher)
+├── ProductApiClient.java           # API client and host resolver
+├── FoodSenseGUI.java               # Main desktop window & search orchestrator
+├── VideoProcessor.java             # Webcam capture & barcode detection pipeline
+├── Product.java                    # Product data model
+├── Nutriments.java                 # Nutrition data model
+├── ApiResponse.java                # API response wrapper
+├── security/
+│   ├── SecurityValidator.java      # Barcode regex, HTML escaping, and HTTPS URL checks
+│   └── SafeImageLoader.java        # Bounded async image fetcher (5MB cap, timeouts)
+└── ui/
+    ├── FoodSenseTheme.java         # Design tokens, palette scales, and Light/Dark toggle
+    ├── CameraScanDialog.java       # In-app modal camera scanner with viewfinder reticles
+    ├── NutriScoreSpectrumView.java # 5-pill Nutri-Score spectrum (A-B-C-D-E)
+    ├── NutritionLabelPanel.java    # Nutrition card with hero calories & macro proportion bar
+    └── AllergenBanner.java         # Danger alert card for allergen warnings
 ```
 
 ## Troubleshooting
 
-**Camera Issues:**
-Ensure no other applications are using the camera and check system permissions. Verify JavaCV native libraries match your OS.
-
-**Barcode Not Detected:**
-Check lighting, ensure the barcode is in focus, and make sure it is fully visible in the frame.
-
-**Product Not Found:**
-The product may not exist in the Open Food Facts database.
-
-**Build Errors:**
-Confirm JDK 25 is installed (`java -version`). Run `mvn clean` and rebuild.
+- **Camera Permissions:** Ensure your OS camera permissions allow the terminal or Java process to access video device 0.
+- **Barcode Validation:** Barcodes must be 3–48 characters (letters, digits, hyphens, or underscores).
+- **Product Not Found:** Products must be cataloged in Open Food Facts. Check the barcode on `world.openfoodfacts.org`.

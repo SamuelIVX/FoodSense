@@ -1,7 +1,7 @@
 /*
  * Live webcam barcode scan pipeline: OpenCV grabber producer + ZXing decode consumer.
  * Uses a bounded {@link java.util.concurrent.BlockingQueue} of frames and notifies a
- * {@link BarcodeListener} when a code is found. Side effect: opens a JavaCV {@code CanvasFrame}.
+ * {@link BarcodeListener} when a code is found. Supports in-app frame rendering or fallback CanvasFrame.
  */
 
 package com.foodsense;
@@ -22,10 +22,10 @@ import javax.swing.WindowConstants;
 
 /**
  * Producer/consumer webcam scanner. Call {@link #start()} once; {@link #stop()} ends both threads.
- * Assumes a display and camera device {@code 0}; not safe to start twice without stopping first
- * (second {@link #start()} is a no-op while {@code running}).
+ * Assumes a display and camera device {@code 0}; safe to call {@link #stop()} multiple times.
  */
 public class VideoProcessor {
+
     /**
      * Callback invoked on the consumer thread when a barcode is decoded.
      * Callers that touch Swing must marshal to the EDT themselves.
@@ -35,67 +35,105 @@ public class VideoProcessor {
          * Called on the consumer thread after a successful ZXing decode.
          *
          * @param barcodeText decoded barcode payload (digits / text as returned by ZXing)
-         * @example
-         * <pre>{@code
-         * barcode -> SwingUtilities.invokeLater(() -> searchField.setText(barcode))
-         * }</pre>
          */
         void onBarcodeDetected(String barcodeText);
     }
 
+    /**
+     * Callback invoked on the consumer thread with each live preview image.
+     */
+    @FunctionalInterface
+    public interface FrameListener {
+        /**
+         * Called when a new processed frame is available for rendering.
+         *
+         * @param image decoded video frame as a BufferedImage
+         */
+        void onFrame(BufferedImage image);
+    }
+
+    /**
+     * Callback invoked when a camera hardware or permission error occurs.
+     */
+    @FunctionalInterface
+    public interface ErrorListener {
+        /**
+         * Called when camera acquisition or streaming encounters a fatal error.
+         *
+         * @param message diagnostic error message
+         */
+        void onError(String message);
+    }
+
     private final BlockingQueue<Frame> frameQueue = new LinkedBlockingQueue<>(2);
     private final BarcodeListener listener;
+    private final FrameListener frameListener;
+    private final ErrorListener errorListener;
     private volatile boolean running = false;
+    private volatile CanvasFrame canvas = null;
 
     /**
      * Creates a scanner that will notify {@code listener} when a code is found.
+     * Uses fallback {@link CanvasFrame} for video preview.
      *
      * @param listener notified when a barcode is detected; may be {@code null} to skip callbacks
-     * @example
-     * <pre>{@code
-     * VideoProcessor vp = new VideoProcessor(code -> System.out.println(code));
-     * vp.start();
-     * }</pre>
      */
     public VideoProcessor(BarcodeListener listener) {
+        this(listener, null, null);
+    }
+
+    /**
+     * Creates a scanner with in-app frame streaming and error notification callbacks.
+     *
+     * @param listener      notified when a barcode is detected
+     * @param frameListener stream listener for in-app frame painting (if null, CanvasFrame is used)
+     * @param errorListener notified if camera cannot be accessed or throws an exception
+     */
+    public VideoProcessor(BarcodeListener listener, FrameListener frameListener, ErrorListener errorListener) {
         this.listener = listener;
+        this.frameListener = frameListener;
+        this.errorListener = errorListener;
     }
 
     /**
      * Starts producer (webcam grab) and consumer (decode + preview) threads if not already running.
-     * Opens a {@code CanvasFrame} titled "Live Barcode Scanner".
-     *
-     * @example
-     * <pre>{@code
-     * new VideoProcessor(System.out::println).start();
-     * }</pre>
      */
-    public void start() {
-        if (running)
+    public synchronized void start() {
+        if (running) {
             return;
+        }
         running = true;
 
-        Thread producer = new Thread(new ProducerTask());
-        Thread consumer = new Thread(new ConsumerTask(listener));
+        Thread producer = new Thread(new ProducerTask(), "foodsense-camera-producer");
+        Thread consumer = new Thread(new ConsumerTask(listener), "foodsense-camera-consumer");
+        producer.setDaemon(true);
+        consumer.setDaemon(true);
         producer.start();
         consumer.start();
     }
 
     /**
-     * Signals both threads to exit and clears the frame queue.
-     * Safe to call from the CanvasFrame close listener or after a successful decode.
-     *
-     * @example
-     * <pre>{@code
-     * VideoProcessor vp = new VideoProcessor(null);
-     * vp.start();
-     * // later, or from windowClosing:
-     * vp.stop();
-     * }</pre>
+     * Signals both threads to exit, disposes canvas if active, and clears the frame queue.
      */
-    public void stop() {
+    public synchronized void stop() {
         running = false;
         frameQueue.clear();
+        if (canvas != null) {
+            try {
+                canvas.dispose();
+            } catch (Exception ignored) {
+            }
+            canvas = null;
+        }
+    }
+
+    /**
+     * Returns whether the scanner is actively running.
+     *
+     * @return {@code true} if running; {@code false} otherwise
+     */
+    public boolean isRunning() {
+        return running;
     }
 
     /**
@@ -105,55 +143,56 @@ public class VideoProcessor {
     private class ProducerTask implements Runnable {
         @Override
         public void run() {
-            try (OpenCVFrameGrabber grabber = new OpenCVFrameGrabber(0)) {
+            OpenCVFrameGrabber grabber = null;
+            try {
+                grabber = new OpenCVFrameGrabber(0);
                 grabber.start();
 
                 while (running) {
                     Frame frame = grabber.grab();
                     if (frame == null) {
                         running = false;
+                        if (errorListener != null) {
+                            errorListener.onError("Camera stream ended unexpectedly");
+                        }
                         break;
                     }
 
-                    // Clone the frame — grab() reuses the same internal buffer
                     Frame cloned = frame.clone();
                     if (!frameQueue.offer(cloned)) {
                         frameQueue.poll();
                         frameQueue.offer(cloned);
                     }
                 }
-
-                grabber.stop();
             } catch (Exception e) {
-                e.printStackTrace();
+                running = false;
+                if (errorListener != null) {
+                    errorListener.onError("Camera error: " + (e.getMessage() != null ? e.getMessage() : "Unable to access camera device"));
+                }
+            } finally {
+                if (grabber != null) {
+                    try {
+                        grabber.stop();
+                        grabber.release();
+                    } catch (Exception ignored) {
+                    }
+                }
             }
         }
     }
 
     /**
-     * Polls frames, runs ZXing decode, draws an optional green box, and shows the live preview.
+     * Polls frames, runs ZXing decode, draws an optional green box, and streams preview.
      */
     private class ConsumerTask implements Runnable {
         private final BarcodeListener listener;
 
-        /**
-         * @param listener same listener passed to the outer {@link VideoProcessor}
-         */
         public ConsumerTask(BarcodeListener listener) {
             this.listener = listener;
         }
 
-        /**
-         * Draws a padded green rectangle when ZXing returns exactly two result points
-         * (typical for 1D barcodes). Leaves the frame unchanged otherwise.
-         *
-         * @param result ZXing decode result with geometry points
-         * @param frame  current preview frame to annotate
-         * @return frame with box drawn, or the original frame when points are unsuitable
-         */
         private Frame drawBoxOverBarcode(Result result, Frame frame) {
             ResultPoint[] points = result.getResultPoints();
-
             if (points != null && points.length == 2) {
                 OpenCVFrameConverter.ToMat matConverter = new OpenCVFrameConverter.ToMat();
                 Mat mat = matConverter.convert(frame);
@@ -161,23 +200,14 @@ public class VideoProcessor {
                 Point p1 = new Point((int) points[0].getX(), (int) points[0].getY());
                 Point p2 = new Point((int) points[1].getX(), (int) points[1].getY());
 
-                // Compute expanded bounding box (padding to make it larger & visible)
                 int paddingX = 150;
                 int paddingY = 120;
 
-                // Compute the corners of the box
-                int minX = Math.min(p1.x(), p2.x()) - paddingX;
-                int minY = Math.min(p1.y(), p2.y()) - paddingY;
-                int maxX = Math.max(p1.x(), p2.x()) + paddingX;
-                int maxY = Math.max(p1.y(), p2.y()) + paddingY;
+                int minX = Math.max(0, Math.min(p1.x(), p2.x()) - paddingX);
+                int minY = Math.max(0, Math.min(p1.y(), p2.y()) - paddingY);
+                int maxX = Math.min(mat.cols() - 1, Math.max(p1.x(), p2.x()) + paddingX);
+                int maxY = Math.min(mat.rows() - 1, Math.max(p1.y(), p2.y()) + paddingY);
 
-                // Make sure the box is within bounds (not outside the video frame)
-                minX = Math.max(0, minX);
-                minY = Math.max(0, minY);
-                maxX = Math.min(mat.cols() - 1, maxX);
-                maxY = Math.min(mat.rows() - 1, maxY);
-
-                // Draw a bold box around the barcode
                 rectangle(
                         mat,
                         new Point(minX, minY),
@@ -194,68 +224,86 @@ public class VideoProcessor {
 
         @Override
         public void run() {
-            CanvasFrame canvas = new CanvasFrame("Live Barcode Scanner");
-            canvas.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
-            canvas.setCanvasSize(640, 480);
-
-            // Stop the producer when the user closes the window
-            canvas.addWindowListener(new java.awt.event.WindowAdapter() {
-                @Override
-                public void windowClosing(java.awt.event.WindowEvent e) {
-                    stop();
-                }
-            });
+            if (frameListener == null) {
+                canvas = new CanvasFrame("Live Barcode Scanner");
+                canvas.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+                canvas.setCanvasSize(640, 480);
+                canvas.addWindowListener(new java.awt.event.WindowAdapter() {
+                    @Override
+                    public void windowClosing(java.awt.event.WindowEvent e) {
+                        stop();
+                    }
+                });
+            }
 
             Java2DFrameConverter frameToImage = new Java2DFrameConverter();
             MultiFormatReader barcodeReader = new MultiFormatReader();
 
-            while (running && canvas.isVisible()) {
+            while (running) {
+                CanvasFrame localCanvas = canvas;
+                if (frameListener == null && (localCanvas == null || !localCanvas.isVisible())) {
+                    break;
+                }
                 try {
                     Frame frame = frameQueue.poll(100, java.util.concurrent.TimeUnit.MILLISECONDS);
-                    if (frame == null)
+                    if (frame == null) {
                         continue;
+                    }
 
-                    // Convert Frame → BufferedImage for ZXing
                     BufferedImage image = frameToImage.convert(frame);
-                    if (image == null)
+                    if (image == null) {
                         continue;
+                    }
+
                     LuminanceSource source = new BufferedImageLuminanceSource(image);
                     BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
 
                     try {
                         Result result = barcodeReader.decode(bitmap);
-
-                        // Draw box on frame
                         frame = drawBoxOverBarcode(result, frame);
+                        image = frameToImage.convert(frame);
 
-                        System.out.println("Detected: " + result.getText() + " (" + result.getBarcodeFormat() + ")");
-
-                        if (listener != null)
+                        if (listener != null) {
                             listener.onBarcodeDetected(result.getText());
+                        }
 
-                        // Pause for a short moment
-                        canvas.showImage(frame);
+                        if (frameListener != null) {
+                            frameListener.onFrame(image);
+                        } else if (localCanvas != null) {
+                            localCanvas.showImage(frame);
+                        }
+
                         try {
-                            Thread.sleep(1000); // 1 second pause
+                            Thread.sleep(600);
                         } catch (InterruptedException ignored) {
                         }
 
                         stop();
-                        canvas.dispose();
                         break;
-
-                    } catch (NotFoundException e) {
-                        // No barcode in this frame
+                    } catch (NotFoundException ignored) {
+                        // Frame did not contain a valid barcode
                     }
-                    canvas.showImage(frame);
+
+                    if (frameListener != null) {
+                        frameListener.onFrame(image);
+                    } else if (localCanvas != null) {
+                        localCanvas.showImage(frame);
+                    }
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     break;
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    System.err.println("Notice: camera frame processing exception: " + e.getMessage());
                 }
             }
-            canvas.dispose();
+
+            if (canvas != null) {
+                try {
+                    canvas.dispose();
+                } catch (Exception ignored) {
+                }
+                canvas = null;
+            }
         }
     }
 }
