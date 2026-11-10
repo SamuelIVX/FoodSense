@@ -37,3 +37,17 @@ jobs:
         with:
           name: FoodSense-${{ runner.os }}-${{ runner.arch }}
           path: target/FoodSense.jar
+
+  build:
+    name: Build
+    needs: [test-and-build]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Verify matrix status
+        run: |
+          if [ "${{ contains(needs.test-and-build.result, 'failure') || contains(needs.test-and-build.result, 'cancelled') || contains(needs.test-and-build.result, 'skipped') }}" = "true" ]; then
+            echo "Matrix test-and-build failed or was not successful: ${{ toJson(needs.test-and-build) }}"
+            exit 1
+          fi
+          echo "All matrix test-and-build runs passed successfully"
