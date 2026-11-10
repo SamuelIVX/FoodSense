@@ -6,8 +6,11 @@
 
 package com.foodsense;
 
+import com.foodsense.security.SecurityValidator;
 import com.google.gson.Gson;
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -111,23 +114,26 @@ public class ProductApiClient {
 
     /**
      * Constructs the full request URI for a given barcode.
+     * Encodes the barcode path segment to avoid injection or illegal character exceptions.
      *
      * @param barcode barcode string
      * @return request URI
      */
     public URI buildUri(String barcode) {
-        return URI.create("https://" + host + "/api/v2/product/" + barcode);
+        String encoded = barcode != null ? URLEncoder.encode(barcode.trim(), StandardCharsets.UTF_8) : "";
+        return URI.create("https://" + host + "/api/v2/product/" + encoded);
     }
 
     /**
      * GETs product details from Open Food Facts API and deserializes with Gson.
      * Network I/O — call off the EDT.
+     * Validates barcode format with {@link SecurityValidator#isValidBarcode(String)} before sending.
      *
      * @param barcode product barcode
      * @return {@link Product} when found (status != 0); {@code null} on failure or status == 0
      */
     public Product fetchProduct(String barcode) {
-        if (barcode == null || barcode.isBlank()) {
+        if (!SecurityValidator.isValidBarcode(barcode)) {
             return null;
         }
         try {

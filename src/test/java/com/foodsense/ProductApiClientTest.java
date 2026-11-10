@@ -136,6 +136,16 @@ class ProductApiClientTest {
         assertNull(client.fetchProduct("  "));
     }
 
+    @Test
+    void testFetchProductRejectsMaliciousBarcodes() {
+        ProductApiClient client = new ProductApiClient("world.openfoodfacts.org", req ->
+                new SimpleHttpResponse(200, "{\"status\": 1, \"product\": {}}"));
+
+        assertNull(client.fetchProduct("../traversal"));
+        assertNull(client.fetchProduct("code with spaces"));
+        assertNull(client.fetchProduct("code?with=query"));
+    }
+
     /** Helper stub for HttpResponse<String> without bytecode instrumentation. */
     private record SimpleHttpResponse(int statusCode, String body) implements HttpResponse<String> {
         @Override
