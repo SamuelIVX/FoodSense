@@ -1,7 +1,6 @@
 /*
- * Swing UI and Open Food Facts client for FoodSense.
- * Builds the sidebar + product view, runs barcode search on a background thread,
- * and marshals UI updates onto the EDT via {@link SwingUtilities#invokeLater}.
+ * Swing UI and Open Food Facts desktop client for FoodSense.
+ * Builds the slim sidebar and responsive dashboard product view.
  */
 
 package com.foodsense;
@@ -11,6 +10,7 @@ import com.foodsense.security.SecurityValidator;
 import com.foodsense.ui.AllergenBanner;
 import com.foodsense.ui.CameraScanDialog;
 import com.foodsense.ui.FoodSenseTheme;
+import com.foodsense.ui.IngredientsPanel;
 import com.foodsense.ui.NutriScoreSpectrumView;
 import com.foodsense.ui.NutritionLabelPanel;
 
@@ -22,7 +22,7 @@ import java.awt.geom.RoundRectangle2D;
 
 /**
  * Main application window: manual barcode entry, in-app webcam scan handoff,
- * theme toggle, and modern nutrition display.
+ * theme toggle, and responsive dashboard nutrition display.
  */
 public class FoodSenseGUI {
 
@@ -30,32 +30,36 @@ public class FoodSenseGUI {
     private JFrame frame;
     private JPanel root;
     private JPanel contentArea;
+
+    // Sidebar references for instant in-place theme recoloring
+    private JPanel sidebar;
+    private JLabel logo;
+    private JLabel tagline;
+    private JLabel barcodeLabel;
     private JTextField searchField;
     private JButton searchBtn;
     private JButton cameraBtn;
     private JButton themeToggleBtn;
     private JLabel bannerLabel;
 
+    // Product card widgets in sidebar
+    private JPanel productCard;
+    private JPanel imgCard;
+    private JLabel imgLabel;
+    private NutriScoreSpectrumView nutriScoreView;
+
     private Product currentProduct = null;
     private int imageRequestId = 0;
 
-    // Sidebar product preview widgets
-    private JPanel productCard;
-    private JLabel imgLabel;
-    private JLabel nameLabel;
-    private JLabel brandLabel;
-    private NutriScoreSpectrumView nutriScoreView;
-
     /**
-     * Constructs the main frame and widget tree with a default API client.
-     * Call {@link #start()} to show the window.
+     * Constructs the main frame with a default API client.
      */
     public FoodSenseGUI() {
         this(new ProductApiClient());
     }
 
     /**
-     * Constructs the main frame and widget tree with a custom API client.
+     * Constructs the main frame with a custom API client.
      *
      * @param apiClient API client instance
      */
@@ -66,12 +70,7 @@ public class FoodSenseGUI {
     }
 
     /**
-     * Makes the main frame visible. Must be called after construction on the EDT.
-     *
-     * @example
-     * <pre>{@code
-     * new FoodSenseGUI().start();
-     * }</pre>
+     * Makes the main frame visible.
      */
     public void start() {
         frame.setVisible(true);
@@ -98,7 +97,8 @@ public class FoodSenseGUI {
         root = new JPanel(new BorderLayout());
         root.setBackground(FoodSenseTheme.getBackground());
 
-        root.add(buildSidebar(), BorderLayout.WEST);
+        sidebar = buildSidebar();
+        root.add(sidebar, BorderLayout.WEST);
 
         contentArea = buildEmptyState();
         root.add(contentArea, BorderLayout.CENTER);
@@ -106,21 +106,21 @@ public class FoodSenseGUI {
         frame.setContentPane(root);
     }
 
-    // ── Sidebar ───────────────────────────────────────────────
+    // ── Sidebar (Slim 240px) ──────────────────────────────────
 
     private JPanel buildSidebar() {
-        JPanel sidebar = new JPanel(new BorderLayout());
-        sidebar.setBackground(FoodSenseTheme.getSidebarBackground());
-        sidebar.setPreferredSize(new Dimension(300, 0));
-        sidebar.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, FoodSenseTheme.getCardBorder()));
+        JPanel bar = new JPanel(new BorderLayout());
+        bar.setBackground(FoodSenseTheme.getSidebarBackground());
+        bar.setPreferredSize(new Dimension(240, 0));
+        bar.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, FoodSenseTheme.getCardBorder()));
 
-        // Top Section: Header, Theme Toggle, Search Input & Buttons
+        // Top controls block
         JPanel top = new JPanel();
         top.setLayout(new BoxLayout(top, BoxLayout.Y_AXIS));
         top.setOpaque(false);
-        top.setBorder(BorderFactory.createEmptyBorder(24, 20, 20, 20));
+        top.setBorder(BorderFactory.createEmptyBorder(20, 16, 16, 16));
 
-        // Header row with logo and Theme Toggle
+        // Header: Logo & Theme Toggle
         JPanel headerRow = new JPanel(new BorderLayout());
         headerRow.setOpaque(false);
         headerRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
@@ -129,21 +129,20 @@ public class FoodSenseGUI {
         titleBlock.setLayout(new BoxLayout(titleBlock, BoxLayout.Y_AXIS));
         titleBlock.setOpaque(false);
 
-        JLabel logo = new JLabel("FoodSense");
-        logo.setFont(FoodSenseTheme.getFont(Font.BOLD, 20f));
+        logo = new JLabel("FoodSense");
+        logo.setFont(FoodSenseTheme.getFont(Font.BOLD, 19f));
         logo.setForeground(FoodSenseTheme.getPrimaryAccent());
         titleBlock.add(logo);
 
-        JLabel tagline = new JLabel("Nutrition Intelligence");
+        tagline = new JLabel("Nutrition Intelligence");
         tagline.setFont(FoodSenseTheme.getFont(Font.PLAIN, 11f));
-        tagline.setForeground(FoodSenseTheme.getTextMuted());
+        tagline.setForeground(FoodSenseTheme.getSidebarMuted());
         titleBlock.add(tagline);
 
         headerRow.add(titleBlock, BorderLayout.WEST);
 
-        // Icon-only Theme Toggle button
         themeToggleBtn = new JButton(FoodSenseTheme.isDarkMode() ? "☀" : "☾");
-        themeToggleBtn.setFont(FoodSenseTheme.getFont(Font.BOLD, 14f));
+        themeToggleBtn.setFont(FoodSenseTheme.getFont(Font.BOLD, 13f));
         themeToggleBtn.setToolTipText("Toggle Light / Dark mode");
         themeToggleBtn.setFocusPainted(false);
         themeToggleBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -156,21 +155,21 @@ public class FoodSenseGUI {
         headerRow.add(themeToggleBtn, BorderLayout.EAST);
         top.add(headerRow);
 
-        top.add(Box.createVerticalStrut(FoodSenseTheme.SPACE_20));
+        top.add(Box.createVerticalStrut(FoodSenseTheme.SPACE_16));
 
-        // Barcode label
-        JLabel barcodeLabel = new JLabel("PRODUCT BARCODE");
+        // Input Label
+        barcodeLabel = new JLabel("PRODUCT BARCODE");
         barcodeLabel.setFont(FoodSenseTheme.getFont(Font.BOLD, 10f));
-        barcodeLabel.setForeground(FoodSenseTheme.getTextMuted());
+        barcodeLabel.setForeground(FoodSenseTheme.getSidebarMuted());
         barcodeLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         top.add(barcodeLabel);
-        top.add(Box.createVerticalStrut(FoodSenseTheme.SPACE_8));
+        top.add(Box.createVerticalStrut(FoodSenseTheme.SPACE_4));
 
-        // Search text field
+        // Text Field
         searchField = new JTextField();
-        searchField.setFont(FoodSenseTheme.getFont(Font.PLAIN, 13f));
-        searchField.putClientProperty("JTextField.placeholderText", "Enter barcode (e.g. 0049000006346)");
-        searchField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 38));
+        searchField.setFont(FoodSenseTheme.getFont(Font.PLAIN, 12f));
+        searchField.putClientProperty("JTextField.placeholderText", "Enter barcode number");
+        searchField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 34));
         searchField.setAlignmentX(Component.LEFT_ALIGNMENT);
         searchField.addActionListener(e -> searchProduct());
         searchField.addKeyListener(new KeyAdapter() {
@@ -182,92 +181,111 @@ public class FoodSenseGUI {
         top.add(searchField);
         top.add(Box.createVerticalStrut(FoodSenseTheme.SPACE_8));
 
-        // Action Buttons Row (Search & Scan)
-        JPanel btnRow = new JPanel(new GridLayout(1, 2, 8, 0));
-        btnRow.setOpaque(false);
-        btnRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
-        btnRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        searchBtn = new JButton("Search");
+        // Stacked Buttons
+        searchBtn = new JButton("Search Barcode");
         searchBtn.setFont(FoodSenseTheme.getFont(Font.BOLD, 12f));
         searchBtn.setFocusPainted(false);
         searchBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        searchBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 32));
+        searchBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
         searchBtn.addActionListener(e -> searchProduct());
+        top.add(searchBtn);
+
+        top.add(Box.createVerticalStrut(FoodSenseTheme.SPACE_4));
 
         cameraBtn = new JButton("Scan with Camera");
         cameraBtn.setFont(FoodSenseTheme.getFont(Font.BOLD, 12f));
         cameraBtn.setFocusPainted(false);
         cameraBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        cameraBtn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 32));
+        cameraBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
         cameraBtn.addActionListener(e -> openCameraModal());
-
-        btnRow.add(searchBtn);
-        btnRow.add(cameraBtn);
-        top.add(btnRow);
+        top.add(cameraBtn);
 
         // Status banner
         top.add(Box.createVerticalStrut(FoodSenseTheme.SPACE_8));
         bannerLabel = new JLabel("");
-        bannerLabel.setFont(FoodSenseTheme.getFont(Font.PLAIN, 12f));
+        bannerLabel.setFont(FoodSenseTheme.getFont(Font.PLAIN, 11f));
         bannerLabel.setForeground(FoodSenseTheme.getDanger());
         bannerLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         bannerLabel.setVisible(false);
         top.add(bannerLabel);
 
-        sidebar.add(top, BorderLayout.NORTH);
-        sidebar.add(buildSidebarProductCard(), BorderLayout.CENTER);
+        bar.add(top, BorderLayout.NORTH);
+        bar.add(buildSidebarProductCard(), BorderLayout.CENTER);
 
-        return sidebar;
+        return bar;
     }
 
     private JPanel buildSidebarProductCard() {
         productCard = new JPanel();
         productCard.setLayout(new BoxLayout(productCard, BoxLayout.Y_AXIS));
         productCard.setOpaque(false);
-        productCard.setBorder(BorderFactory.createEmptyBorder(16, 20, 20, 20));
+        productCard.setBorder(BorderFactory.createEmptyBorder(12, 16, 16, 16));
 
         JSeparator sep = new JSeparator();
         sep.setMaximumSize(new Dimension(Integer.MAX_VALUE, 1));
         productCard.add(sep);
         productCard.add(Box.createVerticalStrut(FoodSenseTheme.SPACE_16));
 
-        // Product image container with smooth placeholder
+        // Styled image frame card
+        imgCard = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(FoodSenseTheme.getCardBackground());
+                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 12, 12));
+                g2.setColor(FoodSenseTheme.getCardBorder());
+                g2.setStroke(new BasicStroke(1f));
+                g2.draw(new RoundRectangle2D.Float(0, 0, getWidth() - 1, getHeight() - 1, 12, 12));
+                g2.dispose();
+            }
+        };
+        imgCard.setOpaque(false);
+        imgCard.setPreferredSize(new Dimension(150, 150));
+        imgCard.setMaximumSize(new Dimension(150, 150));
+        imgCard.setAlignmentX(Component.CENTER_ALIGNMENT);
+
         imgLabel = new JLabel();
-        imgLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         imgLabel.setHorizontalAlignment(JLabel.CENTER);
-        imgLabel.setPreferredSize(new Dimension(180, 180));
-        imgLabel.setMaximumSize(new Dimension(180, 180));
-        imgLabel.setVisible(false);
-        productCard.add(imgLabel);
-        productCard.add(Box.createVerticalStrut(FoodSenseTheme.SPACE_12));
+        imgLabel.setFont(FoodSenseTheme.getFont(Font.PLAIN, 11f));
+        imgLabel.setForeground(FoodSenseTheme.getTextMuted());
+        imgCard.add(imgLabel, BorderLayout.CENTER);
+        imgCard.setVisible(false);
 
-        nameLabel = new JLabel();
-        nameLabel.setFont(FoodSenseTheme.getFont(Font.BOLD, 14f));
-        nameLabel.setForeground(FoodSenseTheme.getTextPrimary());
-        nameLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        nameLabel.setVisible(false);
-        productCard.add(nameLabel);
-        productCard.add(Box.createVerticalStrut(FoodSenseTheme.SPACE_4));
-
-        brandLabel = new JLabel();
-        brandLabel.setFont(FoodSenseTheme.getFont(Font.PLAIN, 12f));
-        brandLabel.setForeground(FoodSenseTheme.getTextMuted());
-        brandLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        brandLabel.setVisible(false);
-        productCard.add(brandLabel);
+        productCard.add(imgCard);
         productCard.add(Box.createVerticalStrut(FoodSenseTheme.SPACE_16));
 
         nutriScoreView = new NutriScoreSpectrumView();
-        nutriScoreView.setAlignmentX(Component.LEFT_ALIGNMENT);
+        nutriScoreView.setAlignmentX(Component.CENTER_ALIGNMENT);
         nutriScoreView.setVisible(false);
         productCard.add(nutriScoreView);
 
         return productCard;
     }
 
+    /**
+     * Reapplies theme colors to sidebar components in-place without restarting image fetch.
+     */
+    private void applySidebarTheme() {
+        sidebar.setBackground(FoodSenseTheme.getSidebarBackground());
+        sidebar.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, FoodSenseTheme.getCardBorder()));
+        logo.setForeground(FoodSenseTheme.getPrimaryAccent());
+        tagline.setForeground(FoodSenseTheme.getSidebarMuted());
+        barcodeLabel.setForeground(FoodSenseTheme.getSidebarMuted());
+        bannerLabel.setForeground(FoodSenseTheme.getDanger());
+        imgLabel.setForeground(FoodSenseTheme.getTextMuted());
+        nutriScoreView.repaint();
+        sidebar.revalidate();
+        sidebar.repaint();
+    }
+
     private void updateComponentColors() {
         root.setBackground(FoodSenseTheme.getBackground());
+        applySidebarTheme();
         if (currentProduct != null) {
-            updateSidebar(currentProduct);
             swapContent(buildProductView(currentProduct));
         } else {
             swapContent(buildEmptyState());
@@ -287,81 +305,41 @@ public class FoodSenseGUI {
         inner.setOpaque(false);
 
         JLabel icon = new JLabel("⌕");
-        icon.setFont(FoodSenseTheme.getFont(Font.PLAIN, 56f));
+        icon.setFont(FoodSenseTheme.getFont(Font.PLAIN, 48f));
         icon.setForeground(FoodSenseTheme.getTextMuted());
         icon.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JLabel title = new JLabel("No Product Loaded");
-        title.setFont(FoodSenseTheme.getFont(Font.BOLD, 20f));
+        JLabel title = new JLabel("Ready to Scan");
+        title.setFont(FoodSenseTheme.getFont(Font.BOLD, 18f));
         title.setForeground(FoodSenseTheme.getTextPrimary());
         title.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-        JLabel hint = new JLabel("Enter a barcode on the left or scan with your webcam to inspect nutrition facts.");
-        hint.setFont(FoodSenseTheme.getFont(Font.PLAIN, 13f));
+        JLabel hint = new JLabel("Enter a barcode on the left or scan live with your camera.");
+        hint.setFont(FoodSenseTheme.getFont(Font.PLAIN, 12f));
         hint.setForeground(FoodSenseTheme.getTextMuted());
         hint.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         inner.add(icon);
-        inner.add(Box.createVerticalStrut(FoodSenseTheme.SPACE_12));
-        inner.add(title);
         inner.add(Box.createVerticalStrut(FoodSenseTheme.SPACE_8));
+        inner.add(title);
+        inner.add(Box.createVerticalStrut(FoodSenseTheme.SPACE_4));
         inner.add(hint);
 
         p.add(inner);
         return p;
     }
 
+    /**
+     * Builds a balanced, two-column responsive dashboard that fills the window
+     * and eliminates blank spaces and horizontal scrollbars.
+     */
     private JPanel buildProductView(Product p) {
-        JPanel sections = new JPanel();
-        sections.setLayout(new BoxLayout(sections, BoxLayout.Y_AXIS));
-        sections.setBackground(FoodSenseTheme.getBackground());
-        sections.setBorder(BorderFactory.createEmptyBorder(30, 36, 30, 36));
+        JPanel main = new JPanel(new BorderLayout());
+        main.setBackground(FoodSenseTheme.getBackground());
+        main.setBorder(BorderFactory.createEmptyBorder(24, 28, 24, 28));
 
-        // 1. Structured Nutrition Card
-        sections.add(new NutritionLabelPanel(p.getNutriments()));
-        sections.add(Box.createVerticalStrut(FoodSenseTheme.SPACE_24));
-
-        // 2. Ingredients Section
-        sections.add(buildIngredientsSection(p));
-
-        // 3. Allergens Section (if present)
-        if (p.getAllergens_from_ingredients() != null && !p.getAllergens_from_ingredients().isBlank()) {
-            sections.add(Box.createVerticalStrut(FoodSenseTheme.SPACE_24));
-            sections.add(new AllergenBanner(p.getAllergens_from_ingredients()));
-        }
-
-        JPanel wrapper = new JPanel(new BorderLayout());
-        wrapper.setBackground(FoodSenseTheme.getBackground());
-        wrapper.add(sections, BorderLayout.NORTH);
-
-        JScrollPane scroll = new JScrollPane(wrapper);
-        scroll.setBorder(null);
-        scroll.getVerticalScrollBar().setUnitIncrement(16);
-        scroll.getViewport().setBackground(FoodSenseTheme.getBackground());
-
-        JPanel container = new JPanel(new BorderLayout());
-        container.setBackground(FoodSenseTheme.getBackground());
-        container.add(scroll, BorderLayout.CENTER);
-        return container;
-    }
-
-    private JPanel buildIngredientsSection(Product p) {
-        JPanel section = new JPanel();
-        section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
-        section.setOpaque(false);
-        section.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        JLabel title = new JLabel("Ingredients");
-        title.setFont(FoodSenseTheme.getFont(Font.BOLD, 18f));
-        title.setForeground(FoodSenseTheme.getTextPrimary());
-        section.add(title);
-        section.add(Box.createVerticalStrut(FoodSenseTheme.SPACE_12));
-
-        String text = (p.getIngredients_text() != null && !p.getIngredients_text().isBlank())
-                ? p.getIngredients_text()
-                : "No ingredients information available for this product.";
-
-        JPanel card = new JPanel(new BorderLayout()) {
+        // Top Header Banner inside Main Content
+        JPanel headerCard = new JPanel(new BorderLayout()) {
             @Override
             protected void paintComponent(Graphics g) {
                 super.paintComponent(g);
@@ -375,24 +353,85 @@ public class FoodSenseGUI {
                 g2.dispose();
             }
         };
-        card.setOpaque(false);
-        card.setBorder(BorderFactory.createEmptyBorder(16, 20, 16, 20));
-        card.setAlignmentX(Component.LEFT_ALIGNMENT);
+        headerCard.setOpaque(false);
+        headerCard.setBorder(BorderFactory.createEmptyBorder(16, 20, 16, 20));
 
-        JTextArea area = new JTextArea(text);
-        area.setFont(FoodSenseTheme.getFont(Font.PLAIN, 13f));
-        area.setForeground(FoodSenseTheme.getTextPrimary());
-        area.setOpaque(false);
-        area.setLineWrap(true);
-        area.setWrapStyleWord(true);
-        area.setEditable(false);
-        card.add(area, BorderLayout.CENTER);
+        JPanel headerLeft = new JPanel();
+        headerLeft.setLayout(new BoxLayout(headerLeft, BoxLayout.Y_AXIS));
+        headerLeft.setOpaque(false);
 
-        section.add(card);
-        return section;
+        String titleText = p.getProduct_name() != null ? p.getProduct_name() : "Unknown Product";
+        JLabel prodTitle = new JLabel(titleText);
+        prodTitle.putClientProperty("html.disable", Boolean.TRUE);
+        prodTitle.setFont(FoodSenseTheme.getFont(Font.BOLD, 22f));
+        prodTitle.setForeground(FoodSenseTheme.getTextPrimary());
+        headerLeft.add(prodTitle);
+        headerLeft.add(Box.createVerticalStrut(FoodSenseTheme.SPACE_4));
+
+        String brandText = p.getBrands() != null && !p.getBrands().isBlank() ? p.getBrands() : "Generic / Unbranded";
+        JLabel prodBrand = new JLabel("<html><span style='color:" + toHex(FoodSenseTheme.getTextMuted()) + ";'>Brand: </span><b><i>"
+                + SecurityValidator.escapeHtml(brandText) + "</i></b></html>");
+        prodBrand.setFont(FoodSenseTheme.getFont(Font.PLAIN, 12.5f));
+        prodBrand.setForeground(FoodSenseTheme.getTextSecondary());
+        headerLeft.add(prodBrand);
+
+        headerCard.add(headerLeft, BorderLayout.WEST);
+
+        // Header right Nutri-Score badge
+        if (p.getNutriscore_grade() != null && p.getNutriscore_grade().trim().matches("(?i)[a-e]")) {
+            String g = p.getNutriscore_grade().trim().toUpperCase();
+            JLabel gradeBadge = new JLabel(" Nutri-Score Grade " + g + " ");
+            gradeBadge.setFont(FoodSenseTheme.getFont(Font.BOLD, 12f));
+            gradeBadge.setForeground(Color.WHITE);
+            gradeBadge.setBackground(FoodSenseTheme.getNutriscoreColor(g));
+            gradeBadge.setOpaque(true);
+            gradeBadge.setBorder(BorderFactory.createEmptyBorder(6, 12, 6, 12));
+
+            JPanel badgeWrapper = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 4));
+            badgeWrapper.setOpaque(false);
+            badgeWrapper.add(gradeBadge);
+            headerCard.add(badgeWrapper, BorderLayout.EAST);
+        }
+
+        main.add(headerCard, BorderLayout.NORTH);
+
+        // 2-Column Dashboard Center
+        JPanel columns = new JPanel(new GridLayout(1, 2, 20, 0));
+        columns.setOpaque(false);
+        columns.setBorder(BorderFactory.createEmptyBorder(20, 0, 0, 0));
+
+        // Column 1: Nutrition Profile
+        columns.add(new NutritionLabelPanel(p.getNutriments()));
+
+        // Column 2: Ingredients & Allergens
+        JPanel col2 = new JPanel();
+        col2.setLayout(new BoxLayout(col2, BoxLayout.Y_AXIS));
+        col2.setOpaque(false);
+
+        col2.add(new IngredientsPanel(p.getIngredients_text(), p.getAllergens_from_ingredients()));
+
+        if (p.getAllergens_from_ingredients() != null && !p.getAllergens_from_ingredients().isBlank()) {
+            col2.add(Box.createVerticalStrut(FoodSenseTheme.SPACE_16));
+            col2.add(new AllergenBanner(p.getAllergens_from_ingredients()));
+        }
+
+        columns.add(col2);
+        main.add(columns, BorderLayout.CENTER);
+
+        // ScrollPane with horizontal scrollbar disabled
+        JScrollPane scroll = new JScrollPane(main);
+        scroll.setBorder(null);
+        scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+        scroll.getVerticalScrollBar().setUnitIncrement(16);
+        scroll.getViewport().setBackground(FoodSenseTheme.getBackground());
+
+        JPanel container = new JPanel(new BorderLayout());
+        container.setBackground(FoodSenseTheme.getBackground());
+        container.add(scroll, BorderLayout.CENTER);
+        return container;
     }
 
-    // ── Logic & Handlers ──────────────────────────────────────
+    // ── Search & Logic ────────────────────────────────────────
 
     private void searchProduct() {
         if (!searchBtn.isEnabled()) {
@@ -408,27 +447,30 @@ public class FoodSenseGUI {
 
         String barcode = rawBarcode.trim();
         if (!SecurityValidator.isValidBarcode(barcode)) {
-            showBanner("Invalid barcode format. Use numbers or alphanumeric codes (3-48 chars).");
+            showBanner("Invalid barcode (3-48 alphanumeric characters, hyphens, or underscores).");
             return;
         }
 
         searchBtn.setEnabled(false);
         cameraBtn.setEnabled(false);
-        searchBtn.setText("Fetching...");
+        searchBtn.setText("Searching...");
 
         new Thread(() -> {
             Product product = apiClient.fetchProduct(barcode);
             SwingUtilities.invokeLater(() -> {
-                if (product != null) {
-                    this.currentProduct = product;
-                    updateSidebar(product);
-                    swapContent(buildProductView(product));
-                } else {
-                    showBanner("Product not found. Verify the code and try again.");
+                try {
+                    if (product != null) {
+                        this.currentProduct = product;
+                        updateSidebar(product);
+                        swapContent(buildProductView(product));
+                    } else {
+                        showBanner("Product not found. Verify code.");
+                    }
+                } finally {
+                    searchBtn.setEnabled(true);
+                    cameraBtn.setEnabled(true);
+                    searchBtn.setText("Search Barcode");
                 }
-                searchBtn.setEnabled(true);
-                cameraBtn.setEnabled(true);
-                searchBtn.setText("Search");
             });
         }, "foodsense-api-search").start();
     }
@@ -445,15 +487,13 @@ public class FoodSenseGUI {
     private void updateSidebar(Product p) {
         final int currentReq = ++imageRequestId;
 
-        // Load image asynchronously to prevent EDT freezing
+        imgCard.setVisible(true);
         imgLabel.setIcon(null);
-        imgLabel.setText("Loading image...");
-        imgLabel.setForeground(FoodSenseTheme.getTextMuted());
-        imgLabel.setVisible(true);
+        imgLabel.setText("Loading...");
 
         String imgUrl = p.getImage_front_url();
         if (imgUrl != null && !imgUrl.isBlank()) {
-            SafeImageLoader.loadImageAsync(imgUrl, 180, 180, icon -> {
+            SafeImageLoader.loadImageAsync(imgUrl, 140, 140, icon -> {
                 if (currentReq != imageRequestId) {
                     return;
                 }
@@ -462,24 +502,15 @@ public class FoodSenseGUI {
                     imgLabel.setText(null);
                 } else {
                     imgLabel.setIcon(null);
-                    imgLabel.setText("No image preview");
+                    imgLabel.setText("No photo");
                 }
             });
         } else {
             imgLabel.setIcon(null);
-            imgLabel.setText("No image preview");
+            imgLabel.setText("No photo");
         }
 
-        String safeName = SecurityValidator.escapeHtml(p.getProduct_name() != null ? p.getProduct_name() : "Unknown product");
-        nameLabel.setText("<html><body style='width: 210px;'>" + safeName + "</body></html>");
-
-        brandLabel.putClientProperty("html.disable", Boolean.TRUE);
-        brandLabel.setText(p.getBrands() != null ? p.getBrands() : "");
-
         nutriScoreView.setGrade(p.getNutriscore_grade());
-
-        nameLabel.setVisible(true);
-        brandLabel.setVisible(true);
         nutriScoreView.setVisible(true);
         productCard.revalidate();
         productCard.repaint();
@@ -494,12 +525,17 @@ public class FoodSenseGUI {
     }
 
     private void showBanner(String message) {
-        bannerLabel.setText(message);
+        bannerLabel.setText("<html><div style='width: 190px;'>"
+                + SecurityValidator.escapeHtml(message) + "</div></html>");
         bannerLabel.setVisible(true);
     }
 
     private void clearBanner() {
         bannerLabel.setText("");
         bannerLabel.setVisible(false);
+    }
+
+    private static String toHex(Color c) {
+        return String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
     }
 }

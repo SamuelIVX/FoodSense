@@ -11,7 +11,7 @@ import java.awt.geom.RoundRectangle2D;
 
 /**
  * Custom Swing component that renders the standard 5-pill Nutri-Score spectrum.
- * The active grade is visually elevated and scaled, while remaining pills are dimmed.
+ * Compact and proportioned to fit sidebars without clipping.
  */
 public class NutriScoreSpectrumView extends JPanel {
 
@@ -41,8 +41,8 @@ public class NutriScoreSpectrumView extends JPanel {
     public NutriScoreSpectrumView(String grade) {
         setOpaque(false);
         setGrade(grade);
-        setPreferredSize(new Dimension(220, 48));
-        setMaximumSize(new Dimension(240, 52));
+        setPreferredSize(new Dimension(160, 36));
+        setMaximumSize(new Dimension(180, 40));
     }
 
     /**
@@ -51,7 +51,8 @@ public class NutriScoreSpectrumView extends JPanel {
      * @param grade letter grade (A-E), or null for neutral spectrum
      */
     public void setGrade(String grade) {
-        this.activeGrade = (grade != null && !grade.isBlank()) ? grade.trim().toUpperCase() : null;
+        String normalized = grade != null ? grade.trim().toUpperCase(java.util.Locale.ROOT) : "";
+        this.activeGrade = normalized.matches("[A-E]") ? normalized : null;
         setToolTipText(this.activeGrade != null ? "Nutri-Score: Grade " + this.activeGrade : "Nutri-Score not available");
         repaint();
     }
@@ -76,13 +77,12 @@ public class NutriScoreSpectrumView extends JPanel {
         int totalHeight = getHeight();
         int pillCount = GRADES.length;
 
-        int standardW = 28;
-        int standardH = 28;
-        int activeW = 34;
-        int activeH = 38;
-        int gap = 4;
+        int standardW = 24;
+        int standardH = 24;
+        int activeW = 30;
+        int activeH = 32;
+        int gap = 3;
 
-        // Calculate total content width
         int activeIndex = -1;
         if (activeGrade != null) {
             for (int i = 0; i < GRADES.length; i++) {
@@ -111,24 +111,23 @@ public class NutriScoreSpectrumView extends JPanel {
             if (isActive) {
                 // Elevated active pill
                 g2.setColor(baseColor);
-                g2.fill(new RoundRectangle2D.Float(currentX, y, w, h, 10, 10));
-
-                // Crisp border highlight
-                g2.setColor(new Color(255, 255, 255, 180));
-                g2.setStroke(new BasicStroke(1.5f));
-                g2.draw(new RoundRectangle2D.Float(currentX, y, w, h, 10, 10));
-
-                // Font for active grade
-                g2.setFont(FoodSenseTheme.getFont(Font.BOLD, 17f));
-                g2.setColor(Color.WHITE);
-            } else {
-                // Dimmed inactive pill (clean transparency)
-                int alpha = (activeIndex >= 0) ? 90 : 200;
-                Color dimmed = new Color(baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), alpha);
-                g2.setColor(dimmed);
                 g2.fill(new RoundRectangle2D.Float(currentX, y, w, h, 8, 8));
 
-                g2.setFont(FoodSenseTheme.getFont(Font.BOLD, 12f));
+                // Clean highlight border
+                g2.setColor(new Color(255, 255, 255, 220));
+                g2.setStroke(new BasicStroke(1.5f));
+                g2.draw(new RoundRectangle2D.Float(currentX, y, w, h, 8, 8));
+
+                g2.setFont(FoodSenseTheme.getFont(Font.BOLD, 14f));
+                g2.setColor(Color.WHITE);
+            } else {
+                // Dimmed inactive pill
+                int alpha = (activeIndex >= 0) ? 90 : 180;
+                Color dimmed = new Color(baseColor.getRed(), baseColor.getGreen(), baseColor.getBlue(), alpha);
+                g2.setColor(dimmed);
+                g2.fill(new RoundRectangle2D.Float(currentX, y, w, h, 6, 6));
+
+                g2.setFont(FoodSenseTheme.getFont(Font.BOLD, 11f));
                 g2.setColor(new Color(255, 255, 255, (activeIndex >= 0) ? 140 : 220));
             }
 

@@ -5,8 +5,6 @@
 
 package com.foodsense.ui;
 
-import com.foodsense.security.SecurityValidator;
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.geom.RoundRectangle2D;
@@ -60,17 +58,20 @@ public class AllergenBanner extends JPanel {
         card.add(Box.createVerticalStrut(10));
 
         // Details
-        String safeText = SecurityValidator.escapeHtml(allergensText);
-        JLabel content = new JLabel("<html><body style='width: 500px; color: " +
-                toHex(FoodSenseTheme.getDanger()) + "'>" + safeText + "</body></html>");
-        content.setFont(FoodSenseTheme.getFont(Font.PLAIN, 13f));
-        content.setAlignmentX(Component.LEFT_ALIGNMENT);
-        card.add(content);
+        JTextArea area = new JTextArea(allergensText != null ? allergensText : "") {
+            @Override
+            public boolean getScrollableTracksViewportWidth() {
+                return true;
+            }
+        };
+        area.setFont(FoodSenseTheme.getFont(Font.PLAIN, 13f));
+        area.setForeground(FoodSenseTheme.getDanger());
+        area.setOpaque(false);
+        area.setLineWrap(true);
+        area.setWrapStyleWord(true);
+        area.setEditable(false);
+        card.add(area);
 
         add(card);
-    }
-
-    private static String toHex(Color c) {
-        return String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
     }
 }

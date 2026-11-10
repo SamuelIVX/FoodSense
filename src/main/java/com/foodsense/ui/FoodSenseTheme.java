@@ -1,12 +1,11 @@
 /*
  * Design token definitions, color palettes, and theme management for FoodSense.
- * Adheres to 4px spacing scale, WCAG 2.2 AA contrast rules, and provides runtime light/dark switching.
+ * Features an authentic forest green / botanical aesthetic for both Light and Dark modes.
  */
 
 package com.foodsense.ui;
 
 import com.formdev.flatlaf.FlatDarkLaf;
-import com.formdev.flatlaf.FlatLaf;
 import com.formdev.flatlaf.FlatLightLaf;
 
 import javax.swing.*;
@@ -14,6 +13,7 @@ import java.awt.*;
 
 /**
  * Central design tokens, color scales, and theme configuration for FoodSense.
+ * Adheres to a botanical forest green aesthetic for both light and dark modes.
  */
 public final class FoodSenseTheme {
 
@@ -100,46 +100,73 @@ public final class FoodSenseTheme {
         }
     }
 
-    // ── Semantic Color Getters ────────────────────────────────
+    // ── Forest Theme Semantic Colors ──────────────────────────
 
     public static Color getBackground() {
-        return darkMode ? new Color(15, 23, 42) : new Color(248, 250, 252);
+        // Light: Gentle morning mist botanical green; Dark: Deep obsidian forest
+        return darkMode ? new Color(11, 22, 14) : new Color(244, 248, 244);
     }
 
     public static Color getSidebarBackground() {
-        return darkMode ? new Color(11, 19, 32) : new Color(241, 245, 249);
+        // Light: Soft light sage rail; Dark: Deep midnight evergreen rail
+        return darkMode ? new Color(8, 18, 11) : new Color(235, 244, 237);
+    }
+
+    public static Color getSidebarText() {
+        // Light: Deep pine green; Dark: Crisp mint white
+        return darkMode ? new Color(240, 253, 244) : new Color(18, 48, 26);
+    }
+
+    public static Color getSidebarMuted() {
+        // Light: Medium fern green; Dark: Radiant mint
+        return darkMode ? new Color(110, 231, 183) : new Color(68, 108, 80);
     }
 
     public static Color getCardBackground() {
-        return darkMode ? new Color(30, 41, 59) : Color.WHITE;
+        // Light: Pure white; Dark: Elevated dark pine surface
+        return darkMode ? new Color(18, 35, 22) : Color.WHITE;
     }
 
     public static Color getCardBorder() {
-        return darkMode ? new Color(51, 65, 85) : new Color(226, 232, 240);
+        return darkMode ? new Color(31, 58, 37) : new Color(212, 228, 215);
     }
 
     public static Color getTextPrimary() {
-        return darkMode ? new Color(248, 250, 252) : new Color(15, 23, 42);
+        // Light: Deep pine black; Dark: Crisp mint white
+        return darkMode ? new Color(240, 253, 244) : new Color(16, 44, 24);
     }
 
     public static Color getTextSecondary() {
-        return darkMode ? new Color(203, 213, 225) : new Color(71, 85, 105);
+        return darkMode ? new Color(167, 243, 208) : new Color(38, 72, 48);
     }
 
     public static Color getTextMuted() {
-        return darkMode ? new Color(148, 163, 184) : new Color(100, 116, 139);
+        return darkMode ? new Color(110, 231, 183) : new Color(78, 114, 88);
     }
 
     public static Color getPrimaryAccent() {
-        return darkMode ? new Color(52, 211, 153) : new Color(27, 67, 50);
+        // Light: Rich botanical emerald green; Dark: Radiant emerald mint
+        return darkMode ? new Color(52, 211, 153) : new Color(22, 102, 53);
     }
 
     public static Color getPrimaryAccentHover() {
-        return darkMode ? new Color(16, 185, 129) : new Color(45, 106, 79);
+        return darkMode ? new Color(16, 185, 129) : new Color(16, 82, 42);
     }
 
     public static Color getPrimaryLight() {
-        return darkMode ? new Color(6, 78, 59) : new Color(232, 245, 233);
+        return darkMode ? new Color(12, 54, 30) : new Color(230, 246, 233);
+    }
+
+    public static Color getChipBackground() {
+        return darkMode ? new Color(16, 36, 24) : new Color(236, 247, 238);
+    }
+
+    public static Color getChipBorder() {
+        return darkMode ? new Color(30, 64, 40) : new Color(200, 226, 204);
+    }
+
+    public static Color getChipText() {
+        return darkMode ? new Color(236, 253, 245) : new Color(20, 52, 30);
     }
 
     public static Color getDanger() {

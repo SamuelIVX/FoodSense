@@ -14,6 +14,9 @@ import java.util.regex.Pattern;
  */
 public final class SecurityValidator {
 
+    private static final java.util.List<String> ALLOWED_IMAGE_HOST_SUFFIXES =
+            java.util.List.of("openfoodfacts.org", "openfoodfacts.net");
+
     /**
      * Barcodes must be 3-48 characters containing only alphanumeric characters, dashes, or underscores.
      * Rejects control characters, path separators ('/' or '\\'), spaces, and query characters ('?', '#').
@@ -100,22 +103,13 @@ public final class SecurityValidator {
             if (host == null || host.isBlank()) {
                 return false;
             }
-            String lowerHost = host.toLowerCase();
-            return !lowerHost.equals("localhost")
-                    && !lowerHost.equals("0.0.0.0")
-                    && !lowerHost.startsWith("127.")
-                    && !lowerHost.equals("::1")
-                    && !lowerHost.equals("[::1]")
-                    && !lowerHost.equals("169.254.169.254")
-                    && !lowerHost.startsWith("10.")
-                    && !lowerHost.startsWith("172.16.")
-                    && !lowerHost.startsWith("172.17.")
-                    && !lowerHost.startsWith("172.18.")
-                    && !lowerHost.startsWith("172.19.")
-                    && !lowerHost.startsWith("172.2")
-                    && !lowerHost.startsWith("172.30.")
-                    && !lowerHost.startsWith("172.31.")
-                    && !lowerHost.startsWith("192.168.");
+            String lowerHost = host.toLowerCase(java.util.Locale.ROOT);
+            for (String suffix : ALLOWED_IMAGE_HOST_SUFFIXES) {
+                if (lowerHost.equals(suffix) || lowerHost.endsWith("." + suffix)) {
+                    return true;
+                }
+            }
+            return false;
         } catch (Exception ignored) {
             return false;
         }

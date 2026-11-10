@@ -70,7 +70,7 @@ public class VideoProcessor {
     private final FrameListener frameListener;
     private final ErrorListener errorListener;
     private volatile boolean running = false;
-    private CanvasFrame canvas = null;
+    private volatile CanvasFrame canvas = null;
 
     /**
      * Creates a scanner that will notify {@code listener} when a code is found.
@@ -152,6 +152,9 @@ public class VideoProcessor {
                     Frame frame = grabber.grab();
                     if (frame == null) {
                         running = false;
+                        if (errorListener != null) {
+                            errorListener.onError("Camera stream ended unexpectedly");
+                        }
                         break;
                     }
 
@@ -236,7 +239,11 @@ public class VideoProcessor {
             Java2DFrameConverter frameToImage = new Java2DFrameConverter();
             MultiFormatReader barcodeReader = new MultiFormatReader();
 
-            while (running && (frameListener != null || (canvas != null && canvas.isVisible()))) {
+            while (running) {
+                CanvasFrame localCanvas = canvas;
+                if (frameListener == null && (localCanvas == null || !localCanvas.isVisible())) {
+                    break;
+                }
                 try {
                     Frame frame = frameQueue.poll(100, java.util.concurrent.TimeUnit.MILLISECONDS);
                     if (frame == null) {
@@ -262,8 +269,8 @@ public class VideoProcessor {
 
                         if (frameListener != null) {
                             frameListener.onFrame(image);
-                        } else if (canvas != null) {
-                            canvas.showImage(frame);
+                        } else if (localCanvas != null) {
+                            localCanvas.showImage(frame);
                         }
 
                         try {
@@ -279,13 +286,14 @@ public class VideoProcessor {
 
                     if (frameListener != null) {
                         frameListener.onFrame(image);
-                    } else if (canvas != null) {
-                        canvas.showImage(frame);
+                    } else if (localCanvas != null) {
+                        localCanvas.showImage(frame);
                     }
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     break;
-                } catch (Exception ignored) {
+                } catch (Exception e) {
+                    System.err.println("Notice: camera frame processing exception: " + e.getMessage());
                 }
             }
 

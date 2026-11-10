@@ -26,6 +26,8 @@ class JsonDeserializationTest {
     void testNutrimentsDeserialization() {
         String json = "{" +
                 "\"energy\": \"2000\"," +
+                "\"energy-kcal\": \"478\"," +
+                "\"energy-kj\": \"2000\"," +
                 "\"sugars\": \"50\"," +
                 "\"fat\": \"65\"," +
                 "\"saturated-fat\": \"20\"," +
@@ -38,6 +40,8 @@ class JsonDeserializationTest {
         Nutriments nutriments = gson.fromJson(json, Nutriments.class);
         assertNotNull(nutriments);
         assertEquals("2000", nutriments.getEnergy());
+        assertEquals("478", nutriments.getEnergyKcal());
+        assertEquals("2000", nutriments.getEnergyKj());
         assertEquals("50", nutriments.getSugars());
         assertEquals("65", nutriments.getFat());
         assertEquals("20", nutriments.getSaturated_fat());

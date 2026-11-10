@@ -33,6 +33,17 @@ class NutriScoreSpectrumViewTest {
         assertNull(view.getGrade());
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"unknown", "Z", "123", "F", "not-a-grade", "a b"})
+    void setGrade_treatsInvalidGradesAsUnavailable(String invalidGrade) {
+        NutriScoreSpectrumView view = new NutriScoreSpectrumView("A");
+        assertEquals("A", view.getGrade());
+
+        view.setGrade(invalidGrade);
+        assertNull(view.getGrade());
+        assertEquals("Nutri-Score not available", view.getToolTipText());
+    }
+
     @Test
     void setGrade_setsDescriptiveToolTip() {
         NutriScoreSpectrumView view = new NutriScoreSpectrumView();

@@ -64,9 +64,16 @@ class SecurityValidatorTest {
     void isSafeHttpsUrl_validatesHttps() {
         assertTrue(SecurityValidator.isSafeHttpsUrl("https://images.openfoodfacts.org/images/1.jpg"));
         assertTrue(SecurityValidator.isSafeHttpsUrl("https://world.openfoodfacts.org/api/v2/product/123"));
+        assertTrue(SecurityValidator.isSafeHttpsUrl("https://static.openfoodfacts.org/images/products/1.jpg"));
+        assertTrue(SecurityValidator.isSafeHttpsUrl("https://openfoodfacts.org/logo.png"));
 
-        assertFalse(SecurityValidator.isSafeHttpsUrl("http://images.openfoodfacts.org/images/1.jpg")); // Not https
+        // Insecure scheme
+        assertFalse(SecurityValidator.isSafeHttpsUrl("http://images.openfoodfacts.org/images/1.jpg"));
         assertFalse(SecurityValidator.isSafeHttpsUrl("ftp://example.com/img.jpg"));
+
+        // Untrusted external or private addresses
+        assertFalse(SecurityValidator.isSafeHttpsUrl("https://example.com/img.jpg"));
+        assertFalse(SecurityValidator.isSafeHttpsUrl("https://evilopenfoodfacts.org/img.jpg"));
         assertFalse(SecurityValidator.isSafeHttpsUrl("https://localhost/secret"));
         assertFalse(SecurityValidator.isSafeHttpsUrl("https://127.0.0.1:8080"));
         assertFalse(SecurityValidator.isSafeHttpsUrl("https://127.0.0.2/"));

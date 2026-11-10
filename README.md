@@ -22,7 +22,7 @@ FoodSense is a modern Java desktop application that scans grocery barcodes to di
 
 ## Deployment & Execution
 
-Prebuilt native binaries are published on the [Releases](https://github.com/SamuelIVX/FoodSense/releases) page for macOS (Apple Silicon ARM64), Windows (x64), and Linux (x64).
+Prebuilt platform-specific JARs are published on the [Releases](https://github.com/SamuelIVX/FoodSense/releases) page for macOS (Apple Silicon ARM64), Windows (x64), and Linux (x64).
 
 Requires **Java 25+** installed on your system.
 
@@ -36,14 +36,20 @@ java -jar FoodSense-macOS-ARM64.jar
 Every release publishes cryptographic SHA-256 checksums and GitHub build provenance attestations. To verify your downloaded artifact integrity:
 
 **macOS / Linux:**
+
 ```bash
 shasum -a 256 -c FoodSense-macOS-ARM64.jar.sha256
+gh attestation verify FoodSense-macOS-ARM64.jar --repo SamuelIVX/FoodSense
 ```
 
 **Windows (PowerShell):**
+
 ```powershell
 Get-FileHash .\FoodSense-Windows-X64.jar -Algorithm SHA256
+gh attestation verify .\FoodSense-Windows-X64.jar --repo SamuelIVX/FoodSense
 ```
+
+Compare the printed hash with the contents of `FoodSense-Windows-X64.jar.sha256`.
 
 *Note for macOS users:* When launching via terminal, ensure your terminal application (Terminal.app, iTerm) has Camera permissions granted in `System Settings > Privacy & Security > Camera` for live barcode scanning.
 
@@ -99,5 +105,5 @@ src/main/java/com/foodsense/
 ## Troubleshooting
 
 - **Camera Permissions:** Ensure your OS camera permissions allow the terminal or Java process to access video device 0.
-- **Barcode Validation:** Barcodes must be 3–48 alphanumeric characters. Special characters and spaces are rejected.
+- **Barcode Validation:** Barcodes must be 3–48 characters (letters, digits, hyphens, or underscores).
 - **Product Not Found:** Products must be cataloged in Open Food Facts. Check the barcode on `world.openfoodfacts.org`.

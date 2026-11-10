@@ -27,6 +27,15 @@ class NutrimentsTest {
     }
 
     @Test
+    @DisplayName("Should set and get explicit energy in kcal and kJ")
+    void testExplicitEnergyStorage() {
+        nutriments.setEnergyKcal("140");
+        nutriments.setEnergyKj("586");
+        assertEquals("140", nutriments.getEnergyKcal());
+        assertEquals("586", nutriments.getEnergyKj());
+    }
+
+    @Test
     @DisplayName("Should set and get sugars")
     void testSugarsStorage() {
         nutriments.setSugars("50");
